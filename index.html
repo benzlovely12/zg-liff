@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ยื่นใบลา</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:       #06C755;  /* LINE green */
+      --primary-dark:  #05A847;
+      --primary-light: #E8F9EE;
+      --danger:        #EF4444;
+      --danger-light:  #FEE2E2;
+      --warning:       #F59E0B;
+      --warning-light: #FEF3C7;
+      --gray-50:  #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB;
+      --gray-400: #9CA3AF;
+      --gray-500: #6B7280;
+      --gray-600: #4B5563;
+      --gray-700: #374151;
+      --gray-800: #1F2937;
+      --gray-900: #111827;
+      --radius:    16px;
+      --radius-sm: 10px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Sarabun', sans-serif;
+      font-size: 15px;
+      color: var(--gray-800);
+      background: #F0F2F5;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== SCREENS ===== */
+    .screen {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+    .screen.active { display: flex; }
+
+    /* ===== LOADING ===== */
+    #screenLoading {
+      background: linear-gradient(160deg, #06C755 0%, #05A847 100%);
+    }
+    .loading-logo {
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 24px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .loading-logo i { font-size: 36px; color: #fff; }
+    .loading-text { color: #fff; font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .loading-sub  { color: rgba(255,255,255,0.75); font-size: 14px; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-top: 24px;
+    }
+
+    /* ===== HEADER ===== */
+    .page-header {
+      background: var(--primary);
+      padding: 16px 20px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .page-header-icon {
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .page-header-icon i { font-size: 18px; color: #fff; }
+    .page-header-title  { font-size: 18px; font-weight: 700; color: #fff; }
+    .page-header-sub    { font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 1px; }
+
+    /* ===== FORM PAGE ===== */
+    #screenForm {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+      background: #F0F2F5;
+      align-items: stretch;
+      justify-content: flex-start;
+      padding: 0;
+    }
+
+    .form-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 16px 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ===== USER CARD ===== */
+    .user-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .user-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #06C755, #05A847);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .user-info-name { font-size: 17px; font-weight: 700; color: var(--gray-900); }
+    .user-info-role {
+      display: inline-block;
+      margin-top: 4px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+
+    /* ===== FORM FIELDS ===== */
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-600);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .field-label .req { color: var(--danger); margin-left: 2px; }
+
+    select, input[type="date"], textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      font-family: 'Sarabun', sans-serif;
+      font-size: 15px;
+      color: var(--gray-800);
+      background: var(--gray-50);
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.15s;
+    }
+    select:focus, input[type="date"]:focus, textarea:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+    textarea {
+      resize: none;
+      min-height: 90px;
+      line-height: 1.6;
+    }
+
+    /* select arrow */
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '\f107';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--gray-400);
+      pointer-events: none;
+      font-size: 14px;
+    }
+
+    /* ===== DATE ROW ===== */
+    .date-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ===== DAYS BADGE ===== */
+    .days-badge-wrap {
+      display: none;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .days-badge {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 20px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ===== HALF DAY TOGGLE ===== */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .toggle-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    .toggle-sub {
+      font-size: 12px;
+      color: var(--gray-400);
+      margin-top: 2px;
+    }
+    .toggle-switch {
+      width: 46px; height: 26px;
+      background: var(--gray-200);
+      border-radius: 13px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-switch.on { background: var(--primary); }
+    .toggle-knob {
+      width: 20px; height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      position: absolute;
+      top: 3px; left: 3px;
+      transition: left 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-switch.on .toggle-knob { left: 23px; }
+
+    /* session select */
+    .session-select { display: none; margin-top: 10px; }
+
+    /* ===== SUBMIT AREA ===== */
+    .submit-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #fff;
+      padding: 12px 16px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+      z-index: 20;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 15px;
+      background: var(--primary);
+      color: #fff;
+      font-family: 'Sarabun', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn-submit:active { background: var(--primary-dark); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ===== SUCCESS ===== */
+    #screenSuccess {
+      background: linear-gradient(160deg, #06C755 0%, #05A847 100%);
+    }
+    .success-icon {
+      width: 90px; height: 90px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+    }
+    .success-icon i { font-size: 44px; color: #fff; }
+    .success-title { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .success-sub   { font-size: 15px; color: rgba(255,255,255,0.85); text-align: center; line-height: 1.6; }
+    .success-detail {
+      background: rgba(255,255,255,0.2);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      margin: 20px 0 28px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.7;
+      width: 100%;
+      max-width: 320px;
+    }
+    .btn-white {
+      background: #fff;
+      color: var(--primary-dark);
+      font-family: 'Sarabun', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 14px 40px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-white:active { opacity: 0.85; }
+
+    /* ===== NOT FOUND ===== */
+    #screenNotFound {
+      background: #fff;
+      text-align: center;
+    }
+    .notfound-icon {
+      width: 80px; height: 80px;
+      background: var(--danger-light);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .notfound-icon i { font-size: 36px; color: var(--danger); }
+    .notfound-title { font-size: 20px; font-weight: 700; color: var(--gray-900); margin-bottom: 10px; }
+    .notfound-sub   { font-size: 14px; color: var(--gray-500); line-height: 1.7; }
+    .uid-box {
+      background: var(--gray-100);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--gray-500);
+      word-break: break-all;
+    }
+
+    /* ===== ERROR ===== */
+    #screenLiffError {
+      background: #fff;
+      text-align: center;
+    }
+    .error-icon {
+      width: 80px; height: 80px;
+      background: var(--warning-light);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .error-icon i { font-size: 36px; color: var(--warning); }
+    .error-title { font-size: 20px; font-weight: 700; color: var(--gray-900); margin-bottom: 10px; }
+    .error-sub   { font-size: 14px; color: var(--gray-500); line-height: 1.7; }
+
+    /* ===== TOAST ===== */
+    #toastContainer {
+      position: fixed;
+      top: 20px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: calc(100% - 32px);
+      max-width: 360px;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--gray-900);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      animation: slideDown 0.25s ease;
+    }
+    .toast.error   { background: var(--danger); }
+    .toast.success { background: var(--primary-dark); }
+    .toast.warning { background: var(--warning); }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+    @keyframes slideDown {
+      from { opacity:0; transform:translateY(-10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ======================================== -->
+<!-- SCREEN: LOADING                          -->
+<!-- ======================================== -->
+<div id="screenLoading" class="screen active">
+  <div class="loading-logo">
+    <i class="fa-solid fa-file-medical"></i>
+  </div>
+  <div class="loading-text">ระบบใบลา</div>
+  <div class="loading-sub">กำลังเชื่อมต่อ LINE...</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- SCREEN: FORM                             -->
+<!-- ======================================== -->
+<div id="screenForm">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-header-icon">
+      <i class="fa-solid fa-file-medical"></i>
+    </div>
+    <div>
+      <div class="page-header-title">ยื่นใบลา</div>
+      <div class="page-header-sub">ระบบจัดการอู่ซ่อมรถ</div>
+    </div>
+  </div>
+
+  <div class="form-scroll">
+
+    <!-- User Card -->
+    <div class="user-card">
+      <div class="user-avatar" id="formAvatar">?</div>
+      <div>
+        <div class="user-info-name" id="formUserName">—</div>
+        <span class="user-info-role" id="formUserRole">—</span>
+      </div>
+    </div>
+
+    <!-- Leave Type -->
+    <div class="card">
+      <div class="card-title">ประเภทการลา</div>
+      <div class="select-wrap">
+        <select id="lf_type">
+          <option value="ลาป่วย">🏥  ลาป่วย</option>
+          <option value="ลากิจ">📋  ลากิจ</option>
+          <option value="ลาพักร้อน">🌴  ลาพักร้อน</option>
+          <option value="ลาคลอด">👶  ลาคลอด</option>
+          <option value="ลาอื่นๆ">📝  ลาอื่นๆ</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Date Card -->
+    <div class="card">
+      <div class="card-title">วันที่ลา</div>
+
+      <!-- Half Day Toggle -->
+      <div class="toggle-row" style="margin-bottom:14px;">
+        <div>
+          <div class="toggle-label">ลาครึ่งวัน</div>
+          <div class="toggle-sub">เปิดเพื่อลาเฉพาะเช้าหรือบ่าย</div>
+        </div>
+        <div class="toggle-switch" id="halfDayToggle" onclick="toggleHalfDay()">
+          <div class="toggle-knob" id="halfDayKnob"></div>
+        </div>
+      </div>
+
+      <!-- Session (half-day) -->
+      <div class="session-select" id="lf_halfSession">
+        <div class="select-wrap" style="margin-bottom:14px;">
+          <select id="lf_session">
+            <option value="เช้า">🌅  ครึ่งวันเช้า</option>
+            <option value="บ่าย">🌇  ครึ่งวันบ่าย</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Start Date -->
+      <div class="field">
+        <label class="field-label">วันเริ่มต้น <span class="req">*</span></label>
+        <input type="date" id="lf_startDate" onchange="calcDays()" />
+      </div>
+
+      <!-- End Date -->
+      <div class="field" id="lf_endDateGroup">
+        <label class="field-label">วันสิ้นสุด <span class="req">*</span></label>
+        <input type="date" id="lf_endDate" onchange="calcDays()" />
+      </div>
+
+      <!-- Days Badge -->
+      <div class="days-badge-wrap" id="lf_daysGroup">
+        <div class="days-badge">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span id="lf_daysBadge">0 วัน</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reason -->
+    <div class="card">
+      <div class="card-title">เหตุผล (ถ้ามี)</div>
+      <textarea id="lf_reason" placeholder="ระบุเหตุผลการลา..."></textarea>
+    </div>
+
+  </div><!-- /form-scroll -->
+
+  <!-- Submit Bar -->
+  <div class="submit-bar">
+    <button class="btn-submit" id="submitBtn" onclick="submitLeave()">
+      <i class="fa-solid fa-paper-plane"></i> ส่งใบลา
+    </button>
+  </div>
+
+</div><!-- /screenForm -->
+
+<!-- ======================================== -->
+<!-- SCREEN: SUCCESS                          -->
+<!-- ======================================== -->
+<div id="screenSuccess" class="screen">
+  <div class="success-icon">
+    <i class="fa-solid fa-circle-check"></i>
+  </div>
+  <div class="success-title">ส่งใบลาสำเร็จ!</div>
+  <div class="success-sub">คำขอลาของคุณถูกบันทึกแล้ว<br>รอการอนุมัติจากผู้จัดการ</div>
+  <div class="success-detail" id="successDetail">—</div>
+  <button class="btn-white" onclick="resetForm()">
+    <i class="fa-solid fa-plus" style="margin-right:6px;"></i>ยื่นใบลาใหม่
+  </button>
+</div>
+
+<!-- ======================================== -->
+<!-- SCREEN: NOT FOUND                        -->
+<!-- ======================================== -->
+<div id="screenNotFound" class="screen">
+  <div class="notfound-icon">
+    <i class="fa-solid fa-user-slash"></i>
+  </div>
+  <div class="notfound-title">ไม่พบข้อมูลพนักงาน</div>
+  <div class="notfound-sub">
+    LINE Account ของคุณยังไม่ได้ผูกกับระบบ<br>
+    กรุณาติดต่อ Admin เพื่อเพิ่มข้อมูล
+  </div>
+  <div class="uid-box">
+    LINE UID: <strong id="displayLineUID">—</strong>
+  </div>
+</div>
+
+<!-- ======================================== -->
+<!-- SCREEN: LIFF ERROR                       -->
+<!-- ======================================== -->
+<div id="screenLiffError" class="screen">
+  <div class="error-icon">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+  </div>
+  <div class="error-title">เปิดผ่าน LINE เท่านั้น</div>
+  <div class="error-sub">
+    กรุณาเปิดลิงก์นี้ผ่าน<br>
+    แอป LINE บนมือถือของคุณ
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toastContainer"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+var LIFF_ID = '2010076484-cidRdmeV';
+var API_URL = 'https://script.google.com/macros/s/AKfycbx5H77PCh6ehp1S2oTqVKiHCQh2-sfT-GPOvFTs82crSQ24qexfNutycuiPawCp7u5r/exec';
+
+// ============================================================
+// STATE
+// ============================================================
+var _lineUserId  = '';
+var _currentUser = null;
+var _isHalfDay   = false;
+
+// ============================================================
+// STARTUP
+// ============================================================
+window.addEventListener('DOMContentLoaded', async function() {
+
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('lf_startDate').value = today;
+  document.getElementById('lf_endDate').value   = today;
+  calcDays();
+
+  try {
+    await liff.init({ liffId: LIFF_ID });
+
+    if (!liff.isInClient()) {
+      showScreen('screenLiffError');
+      return;
+    }
+
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+
+    var profile = await liff.getProfile();
+    _lineUserId = profile.userId;
+    await findUserByLineId(_lineUserId);
+
+  } catch(e) {
+    console.warn('LIFF init error:', e.message);
+    showScreen('screenLiffError');
+  }
+});
+
+// ============================================================
+// FIND USER
+// ============================================================
+async function findUserByLineId(lineId) {
+  if (!API_URL) { showScreen('screenLiffError'); return; }
+  try {
+    var res   = await apiCall({ action: 'getUsers' });
+    if (!res.success) throw new Error(res.error || 'getUsers failed');
+    var users = res.data || [];
+    _currentUser = users.find(function(u) {
+      return String(u.LineUserID || '').trim() === lineId && u.Status !== 'inactive';
+    }) || null;
+
+    if (!_currentUser) {
+      document.getElementById('displayLineUID').textContent = lineId;
+      showScreen('screenNotFound');
+      return;
+    }
+
+    var initial   = (_currentUser.Name || '?').charAt(0).toUpperCase();
+    var roleLabel = { admin:'Admin', user:'Office', accountant:'ฝ่ายบัญชี', executive:'ผู้บริหาร', labor:'พนักงาน' }[_currentUser.Role] || _currentUser.Role;
+    document.getElementById('formAvatar').textContent   = initial;
+    document.getElementById('formUserName').textContent = _currentUser.Name;
+    document.getElementById('formUserRole').textContent = roleLabel;
+    showScreen('screenForm');
+  } catch(e) {
+    showToast('เชื่อมต่อระบบไม่ได้: ' + e.message, 'error');
+    showScreen('screenLiffError');
+  }
+}
+
+// ============================================================
+// HALF DAY TOGGLE
+// ============================================================
+function toggleHalfDay() {
+  _isHalfDay = !_isHalfDay;
+  var toggle = document.getElementById('halfDayToggle');
+  var endGrp = document.getElementById('lf_endDateGroup');
+  var sesGrp = document.getElementById('lf_halfSession');
+
+  if (_isHalfDay) {
+    toggle.classList.add('on');
+    var s = document.getElementById('lf_startDate').value;
+    document.getElementById('lf_endDate').value = s;
+    endGrp.style.display = 'none';
+    sesGrp.style.display = 'block';
+  } else {
+    toggle.classList.remove('on');
+    endGrp.style.display = 'block';
+    sesGrp.style.display = 'none';
+  }
+  calcDays();
+}
+
+// ============================================================
+// CALC DAYS
+// ============================================================
+function calcDays() {
+  var s     = document.getElementById('lf_startDate').value;
+  var grp   = document.getElementById('lf_daysGroup');
+  var badge = document.getElementById('lf_daysBadge');
+
+  if (_isHalfDay) {
+    if (!s) { grp.style.display = 'none'; return; }
+    document.getElementById('lf_endDate').value = s;
+    grp.style.display = 'flex';
+    badge.textContent = '0.5 วัน';
+    return;
+  }
+  var e = document.getElementById('lf_endDate').value;
+  if (!s || !e) { grp.style.display = 'none'; return; }
+  var diff = Math.round((new Date(e) - new Date(s)) / (1000*60*60*24)) + 1;
+  if (diff <= 0) { grp.style.display = 'none'; return; }
+  grp.style.display = 'flex';
+  badge.textContent  = diff + ' วัน';
+}
+
+// ============================================================
+// SUBMIT
+// ============================================================
+async function submitLeave() {
+  var type      = document.getElementById('lf_type').value;
+  var startDate = document.getElementById('lf_startDate').value;
+  var endDate   = document.getElementById('lf_endDate').value;
+  var reason    = document.getElementById('lf_reason').value.trim();
+
+  if (!startDate) { showToast('กรุณาเลือกวันที่ลา', 'error'); return; }
+
+  var days;
+  if (_isHalfDay) {
+    endDate = startDate;
+    days    = 0.5;
+    var session = document.getElementById('lf_session').value;
+    reason  = (reason ? reason + ' ' : '') + '[ครึ่งวัน' + session + ']';
+  } else {
+    if (!endDate) { showToast('กรุณาเลือกวันที่สิ้นสุด', 'error'); return; }
+    if (new Date(endDate) < new Date(startDate)) {
+      showToast('วันสิ้นสุดต้องไม่น้อยกว่าวันเริ่ม', 'error'); return;
+    }
+    days = Math.round((new Date(endDate) - new Date(startDate)) / (1000*60*60*24)) + 1;
+  }
+
+  var btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่ง...';
+
+  try {
+    var res = await apiCall({
+      action:    'addLeave',
+      UserID:    _currentUser.UserID,
+      Name:      _currentUser.Name,
+      LeaveType: type,
+      StartDate: startDate,
+      EndDate:   endDate,
+      Days:      days,
+      Reason:    reason,
+    });
+
+    if (res.success) {
+      var detail = type + '\n' + startDate + (startDate !== endDate ? ' — ' + endDate : '') + '\n(' + days + ' วัน)';
+      document.getElementById('successDetail').textContent = detail;
+      showScreen('screenSuccess');
+    } else {
+      showToast('เกิดข้อผิดพลาด: ' + (res.error || ''), 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
+    }
+  } catch(e) {
+    showToast('ส่งไม่สำเร็จ: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
+  }
+}
+
+// ============================================================
+// RESET
+// ============================================================
+function resetForm() {
+  document.getElementById('lf_type').value   = 'ลาป่วย';
+  var today = new Date().toISOString().split('T')[0];
+  document.getElementById('lf_startDate').value = today;
+  document.getElementById('lf_endDate').value   = today;
+  document.getElementById('lf_reason').value    = '';
+  if (_isHalfDay) toggleHalfDay();
+  calcDays();
+  var btn = document.getElementById('submitBtn');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
+  showScreen('screenForm');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function showScreen(id) {
+  var all = ['screenLoading','screenNotFound','screenLiffError','screenSuccess','screenForm'];
+  all.forEach(function(s) {
+    var el = document.getElementById(s);
+    if (s === 'screenForm') {
+      el.style.display = (s === id) ? 'flex' : 'none';
+    } else {
+      el.style.display = (s === id) ? 'flex' : 'none';
+      if (s === id) el.classList.add('active');
+      else el.classList.remove('active');
+    }
+  });
+  // screenForm ไม่ใช่ class active — ใช้ display flex โดยตรง
+  if (id === 'screenForm') {
+    document.getElementById('screenForm').style.display = 'flex';
+  }
+}
+
+async function apiCall(params) {
+  if (!API_URL) throw new Error('ยังไม่ได้ตั้งค่า API URL');
+  var url = new URL(API_URL);
+  Object.entries(params).forEach(function(kv) {
+    url.searchParams.set(kv[0], typeof kv[1] === 'object' ? JSON.stringify(kv[1]) : kv[1]);
+  });
+  var res = await fetch(url.toString());
+  return res.json();
+}
+
+function showToast(msg, type) {
+  var icons = { success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation' };
+  var container = document.getElementById('toastContainer');
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + (type || '');
+  toast.innerHTML = '<i class="fa-solid ' + (icons[type] || 'fa-info-circle') + '"></i> ' + msg;
+  container.appendChild(toast);
+  setTimeout(function() { toast.remove(); }, 4000);
+}
+</script>
+</body>
+</html>
