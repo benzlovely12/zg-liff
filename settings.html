@@ -1063,14 +1063,15 @@ function updateCarModels() {
 function checkApiConfig() {
   const bar = document.getElementById('configBar');
   if (API_URL) {
-    bar.style.display = 'none';
-    document.getElementById('apiUrlInput').value = API_URL;
+    if (bar) bar.style.display = 'none';
+    const inp = document.getElementById('apiUrlInput');
+    if (inp) inp.value = API_URL;
   }
 }
 
 function saveApiUrl(fromSettings) {
-  // URL hardcoded แล้ว ไม่ต้องทำอะไร
-  document.getElementById('configBar').style.display = 'none';
+  const bar = document.getElementById('configBar');
+  if (bar) bar.style.display = 'none';
   showToast('เชื่อมต่อแล้ว ✓', 'success');
 }
 
