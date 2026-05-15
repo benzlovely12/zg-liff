@@ -505,8 +505,8 @@
       <div class="session-select" id="lf_halfSession">
         <div class="select-wrap" style="margin-bottom:14px;">
           <select id="lf_session">
-            <option value="เช้า">🌅  ครึ่งวันเช้า</option>
-            <option value="บ่าย">🌇  ครึ่งวันบ่าย</option>
+            <option value="เช้า">🌅  ครึ่งวันเช้า  (08:30–12:30)</option>
+            <option value="บ่าย">🌇  ครึ่งวันบ่าย  (13:30–17:30)</option>
           </select>
         </div>
       </div>
@@ -733,12 +733,18 @@ async function submitLeave() {
 
   if (!startDate) { showToast('กรุณาเลือกวันที่ลา', 'error'); return; }
 
-  var days;
+  var days, startTime = '', endTime = '';
   if (_isHalfDay) {
     endDate = startDate;
     days    = 0.5;
     var session = document.getElementById('lf_session').value;
-    reason  = (reason ? reason + ' ' : '') + '[ครึ่งวัน' + session + ']';
+    if (session === 'เช้า') {
+      startTime = '08:30';
+      endTime   = '12:30';
+    } else {
+      startTime = '13:30';
+      endTime   = '17:30';
+    }
   } else {
     if (!endDate) { showToast('กรุณาเลือกวันที่สิ้นสุด', 'error'); return; }
     if (new Date(endDate) < new Date(startDate)) {
@@ -760,11 +766,14 @@ async function submitLeave() {
       StartDate: startDate,
       EndDate:   endDate,
       Days:      days,
+      StartTime: startTime,
+      EndTime:   endTime,
       Reason:    reason,
     });
 
     if (res.success) {
-      var detail = type + '\n' + startDate + (startDate !== endDate ? ' — ' + endDate : '') + '\n(' + days + ' วัน)';
+      var timeStr = (startTime && endTime) ? ' (' + startTime + '–' + endTime + ' น.)' : '';
+      var detail = type + '\n' + startDate + timeStr + (startDate !== endDate ? ' — ' + endDate : '') + '\n(' + days + ' วัน)';
       document.getElementById('successDetail').textContent = detail;
       showScreen('screenSuccess');
     } else {
@@ -831,12 +840,3 @@ async function apiCall(params) {
 function showToast(msg, type) {
   var icons = { success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation' };
   var container = document.getElementById('toastContainer');
-  var toast = document.createElement('div');
-  toast.className = 'toast ' + (type || '');
-  toast.innerHTML = '<i class="fa-solid ' + (icons[type] || 'fa-info-circle') + '"></i> ' + msg;
-  container.appendChild(toast);
-  setTimeout(function() { toast.remove(); }, 4000);
-}
-</script>
-</body>
-</html>
