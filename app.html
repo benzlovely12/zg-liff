@@ -2677,9 +2677,13 @@ async function apiCall(params) {
     console.warn('API_URL ยังไม่ได้ตั้งค่า');
     return { success: false, error: 'ยังไม่ได้เชื่อมต่อ API' };
   }
-  const url = new URL(API_URL);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v));
-  const res = await fetch(url.toString());
+  // ใช้ POST + text/plain เพื่อหลีกเลี่ยง CORS preflight block จาก GAS
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(params),
+    redirect: 'follow'
+  });
   return res.json();
 }
 
@@ -8292,4 +8296,3 @@ function historyFilterTable() {
   <!-- ══ END JD JOB SEARCH MODAL ═══════════════════════════════ -->
 </body>
 </html>
-                                                                                                                                                                                              
