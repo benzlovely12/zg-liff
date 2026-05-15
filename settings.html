@@ -2385,16 +2385,28 @@ function toggleStatusArchive(statusName, checked) {
 // STARTUP
 // ============================================================
 document.addEventListener('DOMContentLoaded', async function() {
+  // 1. โหลด API_URL จาก localStorage
   var saved = localStorage.getItem('autoRepairApiUrl');
   if (saved) {
     API_URL = saved;
     var el = document.getElementById('settingsApiUrl');
     if (el) el.value = API_URL;
   }
-  // โหลด DD ก่อน แล้วค่อย navigate — ป้องกัน dropdown ว่าง
+
+  // 2. init dropdowns (ตั้งค่าเริ่มต้น)
+  initDropdowns();
+
+  // 3. show nav ทั้งหมดก่อน — settings.html ไม่มี login ไม่ต้องซ่อน
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(el) {
+    el.style.display = '';
+  });
+
+  // 4. โหลด DD settings จาก API
   if (API_URL) {
     try { await loadDDSettings(); } catch(e) { console.warn('loadDDSettings:', e); }
   }
+
+  // 5. navigate ไปหน้าแรก
   navigateSetting('settings');
 });
 </script>
