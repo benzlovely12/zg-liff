@@ -497,61 +497,64 @@
   </style>
   </style>
   <style>
-    /* ===== settings.html overrides ===== */
-    html, body { height:100%; overflow:hidden; background:var(--gray-50); }
-    body { display:flex; }
-    .settings-layout { display:flex; width:100%; height:100vh; overflow:hidden; }
-    .settings-sidebar {
-      width:220px; min-width:220px; background:var(--sidebar-bg);
-      display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;
+    /* ===== settings.html — layout same as app.html ===== */
+    html, body { height: 100%; font-family: 'Sarabun', sans-serif; font-size: 15px; color: var(--gray-800); background: var(--gray-100); }
+    .app { display: flex; height: 100vh; overflow: hidden; }
+    .sidebar {
+      position: relative; z-index: 1;
+      width: var(--sidebar-width);
+      background: var(--gray-900);
+      display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
     }
-    .settings-sidebar .sidebar-logo {
-      padding:20px 20px 16px; border-bottom:1px solid rgba(255,255,255,.08);
+    .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sidebar-logo h1 { font-size: 17px; font-weight: 700; color: #fff; line-height: 1.3; }
+    .sidebar-logo span { font-size: 12px; color: var(--gray-400); font-weight: 400; }
+    .sidebar-section { padding: 12px 12px 4px; }
+    .sidebar-section-title { font-size: 10px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .08em; padding: 0 8px 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: var(--radius-sm);
+      color: var(--gray-400); font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: all .15s; margin-bottom: 2px;
     }
-    .settings-sidebar .sidebar-logo h1 { font-size:16px; font-weight:700; color:#fff; line-height:1.3; }
-    .settings-sidebar .sidebar-logo span { font-size:11px; color:var(--gray-400); }
-    .settings-sidebar .sec-title {
-      font-size:10px; font-weight:700; color:rgba(255,255,255,.4);
-      letter-spacing:1px; padding:12px 18px 4px; text-transform:uppercase;
+    .nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+    .nav-item.active { background: var(--primary); color: #fff; }
+    .nav-item i { width: 18px; text-align: center; font-size: 14px; }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar {
+      height: var(--header-height); background: #fff;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex; align-items: center; padding: 0 24px;
+      gap: 16px; flex-shrink: 0; box-shadow: var(--shadow);
     }
-    .settings-sidebar .nav-item {
-      padding:10px 18px; cursor:pointer; color:rgba(255,255,255,.75);
-      font-size:13px; display:flex; align-items:center; gap:10px;
-      transition:background .15s;
-    }
-    .settings-sidebar .nav-item:hover { background:rgba(255,255,255,.06); color:#fff; }
-    .settings-sidebar .nav-item.active { background:var(--primary); color:#fff; }
-    .settings-sidebar .nav-item i { width:18px; text-align:center; font-size:14px; }
-    .sidebar-spacer { flex:1; }
-    .back-btn {
-      margin:12px; padding:10px 14px; border-radius:var(--radius-sm);
-      background:rgba(255,255,255,.08); border:none; color:rgba(255,255,255,.75);
-      font-size:13px; font-family:inherit; cursor:pointer;
-      display:flex; align-items:center; gap:8px; transition:background .2s;
-    }
-    .back-btn:hover { background:rgba(255,255,255,.16); color:#fff; }
-    .settings-content { flex:1; overflow-y:auto; padding:24px; }
-    .page { display:none !important; }
-    .page.active { display:block !important; }
+    .topbar-title { font-size: 18px; font-weight: 700; color: var(--gray-800); flex: 1; }
+    .content-area { flex: 1; overflow-y: auto; padding: 24px; }
+    .page { display: none !important; }
+    .page.active { display: block !important; }
   </style>
 </head>
 <body>
 
-  <div class="settings-layout">
-    <!-- SIDEBAR -->
-    <aside class="settings-sidebar">
-      <div class="sidebar-logo">
-        <h1><i class="fa-solid fa-gear" style="margin-right:8px;"></i>ตั้งค่าระบบ</h1>
-        <span>System Settings</span>
-      </div>
-      <div class="sec-title">ระบบ</div>
-      <div class="nav-item active" data-page="settings" onclick="navigateSetting('settings')">
+<div class="app">
+  <!-- SIDEBAR — เหมือน app.html ทุกอย่าง -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1><i class="fa-solid fa-car-wrench" style="color:#60a5fa;margin-right:8px;"></i>AutoRepair</h1>
+      <span>ระบบจัดการอู่ซ่อมรถ</span>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">ระบบ</div>
+      <div class="nav-item" data-page="settings" onclick="navigateSetting('settings')">
         <i class="fa-solid fa-plug"></i> เชื่อมต่อ API
       </div>
       <div class="nav-item" data-page="users-settings" onclick="navigateSetting('users-settings')">
         <i class="fa-solid fa-users-gear"></i> จัดการผู้ใช้งาน
       </div>
-      <div class="sec-title" style="margin-top:8px;">Dropdown</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Dropdown</div>
       <div class="nav-item" data-page="customer-settings" onclick="navigateSetting('customer-settings')">
         <i class="fa-solid fa-user-pen"></i> รายการลูกค้า
       </div>
@@ -561,14 +564,23 @@
       <div class="nav-item" data-page="job-settings" onclick="navigateSetting('job-settings')">
         <i class="fa-solid fa-briefcase"></i> รายการ JOB
       </div>
-      <div class="sidebar-spacer"></div>
-      <button class="back-btn" onclick="goBack()">
-        <i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
-      </button>
-    </aside>
+    </div>
 
-    <!-- CONTENT -->
-    <div class="settings-content">
+    <div class="sidebar-section" style="margin-top:auto;">
+      <div class="sidebar-section-title">ระบบ</div>
+      <div class="nav-item" onclick="goBack()">
+        <i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">ตั้งค่าระบบ</div>
+      <div id="topbarUserChip"></div>
+    </div>
+    <div class="content-area">
       <div class="page" id="page-settings">
         <div class="settings-card">
           <div class="settings-card-header"><i class="fa-solid fa-link"></i> การเชื่อมต่อ Google Sheets</div>
@@ -740,8 +752,9 @@
         </div>
       </div>
 
-    </div><!-- /settings-content -->
-  </div><!-- /settings-layout -->
+        </div><!-- /content-area -->
+  </main>
+</div>
 
   <!-- MODALS -->
 <div class="modal-overlay hidden" id="ddItemModal" style="z-index:2000;">
@@ -1558,10 +1571,10 @@ function showStatus(msg, type) { showToast(msg, type); }
 // SETTINGS NAVIGATION
 // ============================================================
 function navigateSetting(page) {
-  document.querySelectorAll('.settings-sidebar .nav-item').forEach(function(el) {
+  document.querySelectorAll('.sidebar .nav-item').forEach(function(el) {
     el.classList.toggle('active', el.getAttribute('data-page') === page);
   });
-  document.querySelectorAll('.settings-content .page').forEach(function(el) {
+  document.querySelectorAll('.content-area .page').forEach(function(el) {
     el.classList.remove('active');
   });
   var el = document.getElementById('page-' + page);
