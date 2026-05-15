@@ -8,195 +8,118 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --green:       #06C755;
-      --green-dark:  #05A847;
-      --green-light: #E8F9EE;
-      --amber:       #F59E0B;
-      --amber-light: #FEF3C7;
-      --amber-dark:  #92400E;
-      --gray-50:  #F9FAFB;
-      --gray-100: #F3F4F6;
-      --gray-200: #E5E7EB;
-      --gray-300: #D1D5DB;
-      --gray-400: #9CA3AF;
-      --gray-500: #6B7280;
-      --gray-600: #4B5563;
-      --gray-700: #374151;
-      --gray-800: #1F2937;
-      --radius: 14px;
-      --radius-sm: 10px;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --green:#06C755;--green-dark:#05A847;--green-light:#E8F9EE;
+      --amber:#F59E0B;--amber-light:#FEF3C7;--amber-dark:#92400E;
+      --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+      --gray-300:#D1D5DB;--gray-400:#9CA3AF;--gray-500:#6B7280;
+      --gray-600:#4B5563;--gray-700:#374151;--gray-800:#1F2937;
+      --radius:14px;--radius-sm:10px;
     }
-    html, body { min-height: 100vh; font-family: 'Sarabun', sans-serif; font-size: 15px; color: var(--gray-800); background: #F0F2F5; -webkit-tap-highlight-color: transparent; }
-
-    /* ===== SCREENS ===== */
-    .screen { display: none; flex-direction: column; min-height: 100vh; align-items: center; justify-content: center; padding: 24px 20px; }
-    .screen.active { display: flex; }
-
-    /* ===== LOADING ===== */
-    #screenLoading { background: var(--green); color: #fff; gap: 16px; }
-    .loading-icon { font-size: 52px; }
-    .loading-title { font-size: 22px; font-weight: 700; }
-    .loading-sub { font-size: 14px; opacity: .7; }
-    .spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; margin-top: 8px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ===== NOT FOUND ===== */
-    #screenNotFound { background: #fff; gap: 12px; text-align: center; }
-    .nf-icon { font-size: 52px; color: var(--gray-300); }
-    .nf-title { font-size: 18px; font-weight: 700; color: var(--gray-700); }
-    .nf-sub { font-size: 13px; color: var(--gray-500); line-height: 1.6; }
-    .uid-box { background: var(--gray-100); border-radius: var(--radius-sm); padding: 10px 16px; font-size: 12px; color: var(--gray-500); word-break: break-all; margin-top: 4px; }
-    .uid-label { font-size: 11px; color: var(--gray-400); margin-bottom: 4px; }
-    .uid-val { font-weight: 600; color: var(--gray-700); font-size: 13px; }
-
-    /* ===== ERROR ===== */
-    #screenLiffError { background: #fff; gap: 12px; text-align: center; }
-    .err-icon { font-size: 52px; color: #EF4444; }
-    .err-title { font-size: 18px; font-weight: 700; color: var(--gray-700); }
-    .err-sub { font-size: 13px; color: var(--gray-500); }
-    #liffErrorDetail { font-size: 11px; color: #EF4444; background: #FEE2E2; border-radius: 8px; padding: 8px 12px; margin-top: 8px; display: none; word-break: break-all; }
-
-    /* ===== SUCCESS ===== */
-    #screenSuccess { background: var(--green-light); gap: 12px; text-align: center; }
-    .success-icon { font-size: 64px; color: var(--green); }
-    .success-title { font-size: 22px; font-weight: 700; color: var(--green-dark); }
-    .success-detail { font-size: 14px; color: var(--gray-600); line-height: 1.8; white-space: pre-line; background: #fff; border-radius: var(--radius-sm); padding: 14px 20px; width: 100%; max-width: 320px; }
-    .btn-again { margin-top: 8px; background: var(--green); color: #fff; border: none; border-radius: 50px; padding: 13px 32px; font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; }
-
-    /* ===== MAIN APP SCREEN ===== */
-    #screenApp { background: #F0F2F5; justify-content: flex-start; padding: 0; min-height: 100vh; }
-
-    /* header */
-    .form-header { width: 100%; background: var(--green); padding: 20px 20px 16px; display: flex; align-items: center; gap: 14px; }
-    .avatar { width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0; }
-    .header-info { flex: 1; }
-    .header-name { font-size: 17px; font-weight: 700; color: #fff; }
-    .header-role { font-size: 12px; color: rgba(255,255,255,.75); margin-top: 2px; }
-
-    /* tab bar */
-    .tab-bar { width: 100%; background: #fff; display: flex; border-bottom: 1px solid var(--gray-200); }
-    .tab-btn { flex: 1; padding: 10px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; font-family: inherit; color: var(--gray-400); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: color .15s; }
-    .tab-btn.active { color: var(--green); border-bottom: 2px solid var(--green); }
-    .tab-btn i { font-size: 20px; }
-
-    /* tab pages */
-    .tab-page { display: none; width: 100%; }
-    .tab-page.active { display: block; }
-
-    /* ===== FORM PAGE ===== */
-    .form-body { width: 100%; padding: 16px 16px 100px; display: flex; flex-direction: column; gap: 14px; }
-    .card { background: #fff; border-radius: var(--radius); padding: 16px; }
-    .card-label { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
-
-    /* session pills */
-    .session-group { display: flex; flex-direction: column; gap: 10px; }
-    .session-pill { width: 100%; padding: 12px 16px; border-radius: var(--radius-sm); border: 2px solid var(--gray-200); background: var(--gray-50); font-size: 15px; font-weight: 600; font-family: inherit; color: var(--gray-700); cursor: pointer; text-align: left; display: flex; align-items: center; gap: 12px; transition: all .15s; }
-    .session-pill:active { transform: scale(.98); }
-    .session-pill.selected { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
-    .session-pill .pill-icon { font-size: 22px; flex-shrink: 0; }
-    .session-pill .pill-info { flex: 1; }
-    .session-pill .pill-title { font-size: 15px; font-weight: 700; }
-    .session-pill .pill-sub { font-size: 12px; font-weight: 400; color: var(--gray-500); margin-top: 2px; }
-    .session-pill.selected .pill-sub { color: var(--green-dark); opacity: .75; }
-    .session-pill .pill-badge { font-size: 12px; font-weight: 700; background: var(--gray-200); color: var(--gray-600); border-radius: 20px; padding: 3px 10px; }
-    .session-pill.selected .pill-badge { background: var(--green); color: #fff; }
-
-    /* date input */
-    .date-input { width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); border: 2px solid var(--gray-200); background: var(--gray-50); font-size: 16px; font-family: inherit; color: var(--gray-800); outline: none; appearance: none; }
-    .date-input:focus { border-color: var(--green); }
-
-    /* summary badge */
-    .summary-badge { display: none; align-items: center; gap: 8px; background: var(--green-light); border-radius: var(--radius-sm); padding: 10px 14px; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--green-dark); }
-    .summary-badge.show { display: flex; }
-    .summary-badge i { font-size: 16px; }
-
-    /* reason */
-    textarea { width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); border: 2px solid var(--gray-200); background: var(--gray-50); font-size: 15px; font-family: inherit; color: var(--gray-800); outline: none; resize: none; line-height: 1.5; }
-    textarea:focus { border-color: var(--green); }
-
-    /* submit bar */
-    .submit-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 12px 16px 24px; box-shadow: 0 -2px 12px rgba(0,0,0,.08); }
-    .submit-btn { width: 100%; padding: 15px; border-radius: 50px; background: var(--green); color: #fff; border: none; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .submit-btn:disabled { background: var(--gray-300); cursor: not-allowed; }
-    .submit-btn:active:not(:disabled) { background: var(--green-dark); }
-
-    /* ===== HISTORY PAGE ===== */
-    .history-body { width: 100%; padding: 12px 12px 24px; display: flex; flex-direction: column; gap: 12px; }
-
-    /* calendar */
-    .cal-card { background: #fff; border-radius: var(--radius); overflow: hidden; }
-    .cal-nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px; }
-    .cal-nav-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--gray-100); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; color: var(--gray-700); }
-    .cal-nav-btn:active { background: var(--gray-200); }
-    .cal-month-label { font-size: 16px; font-weight: 700; color: var(--gray-800); }
-    .cal-days-hdr { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 8px 4px; }
-    .day-hdr { text-align: center; font-size: 11px; font-weight: 600; color: var(--gray-400); padding: 4px 0; }
-    .day-hdr.sun { color: #EF4444; }
-    .day-hdr.sat { color: #3B82F6; }
-    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 8px 12px; gap: 3px; }
-    .day-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 8px; cursor: pointer; transition: background .1s; }
-    .day-num { font-size: 13px; color: var(--gray-800); line-height: 1; }
-    .day-cell.other-month .day-num { color: var(--gray-300); }
-    .day-cell.today .day-num { color: var(--green); font-weight: 700; }
-    .day-cell.today { background: var(--green-light); }
-    .day-cell.leave-full { background: var(--green-light); }
-    .day-cell.leave-full .day-num { color: var(--green-dark); font-weight: 700; }
-    .day-cell.leave-am { background: var(--amber-light); }
-    .day-cell.leave-am .day-num { color: var(--amber-dark); font-weight: 700; }
-    .day-cell.leave-pm { background: var(--amber-light); }
-    .day-cell.leave-pm .day-num { color: var(--amber-dark); font-weight: 700; }
-    .day-cell.selected-day { outline: 2px solid var(--green); outline-offset: -2px; }
-    .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-    .dot-green { background: var(--green); }
-    .dot-amber { background: var(--amber); }
-
-    /* calendar legend */
-    .cal-legend { display: flex; gap: 14px; padding: 0 16px 12px; }
-    .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--gray-500); }
-    .leg-dot { width: 9px; height: 9px; border-radius: 2px; }
-    .leg-green { background: var(--green-light); border: 1px solid var(--green); }
-    .leg-amber { background: var(--amber-light); border: 1px solid var(--amber); }
-
-    /* summary bar */
-    .summary-row { background: #fff; border-radius: var(--radius); display: flex; }
-    .sum-item { flex: 1; padding: 12px 8px; text-align: center; }
-    .sum-item + .sum-item { border-left: 1px solid var(--gray-100); }
-    .sum-num { font-size: 22px; font-weight: 700; color: var(--green); }
-    .sum-num.amber { color: var(--amber); }
-    .sum-lbl { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
-
-    /* leave list */
-    .list-card { background: #fff; border-radius: var(--radius); overflow: hidden; }
-    .list-header { padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--gray-100); }
-    .leave-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--gray-100); }
-    .leave-item:last-child { border-bottom: none; }
-    .leave-icon-wrap { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .icon-full { background: var(--green-light); }
-    .icon-full i { color: var(--green-dark); font-size: 18px; }
-    .icon-half { background: var(--amber-light); }
-    .icon-half i { color: var(--amber-dark); font-size: 18px; }
-    .leave-info { flex: 1; min-width: 0; }
-    .leave-date-txt { font-size: 14px; font-weight: 600; color: var(--gray-800); }
-    .leave-sub-txt { font-size: 12px; color: var(--gray-500); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .leave-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; flex-shrink: 0; }
-    .badge-full { background: var(--green-light); color: var(--green-dark); }
-    .badge-half { background: var(--amber-light); color: var(--amber-dark); }
-    .empty-state { padding: 32px 16px; text-align: center; color: var(--gray-400); font-size: 14px; }
-    .empty-state i { font-size: 40px; display: block; margin-bottom: 8px; }
-
-    /* toast */
-    #toastContainer { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; width: 90%; max-width: 340px; }
-    .toast { background: var(--gray-800); color: #fff; border-radius: 50px; padding: 10px 18px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.2); animation: slideDown .2s ease; }
-    .toast.success { background: #16A34A; }
-    .toast.error { background: #EF4444; }
-    @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    html,body{min-height:100vh;font-family:'Sarabun',sans-serif;font-size:15px;color:var(--gray-800);background:#F0F2F5;-webkit-tap-highlight-color:transparent;}
+    .screen{display:none;flex-direction:column;min-height:100vh;align-items:center;justify-content:center;padding:24px 20px;}
+    .screen.active{display:flex;}
+    #screenLoading{background:var(--green);color:#fff;gap:16px;}
+    .loading-icon{font-size:52px;}.loading-title{font-size:22px;font-weight:700;}.loading-sub{font-size:14px;opacity:.7;}
+    .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-top:8px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    #screenNotFound{background:#fff;gap:12px;text-align:center;}
+    .nf-icon{font-size:52px;color:var(--gray-300);}.nf-title{font-size:18px;font-weight:700;color:var(--gray-700);}.nf-sub{font-size:13px;color:var(--gray-500);line-height:1.6;}
+    .uid-box{background:var(--gray-100);border-radius:var(--radius-sm);padding:10px 16px;font-size:12px;color:var(--gray-500);word-break:break-all;margin-top:4px;}
+    .uid-label{font-size:11px;color:var(--gray-400);margin-bottom:4px;}.uid-val{font-weight:600;color:var(--gray-700);font-size:13px;}
+    #screenLiffError{background:#fff;gap:12px;text-align:center;}
+    .err-icon{font-size:52px;color:#EF4444;}.err-title{font-size:18px;font-weight:700;color:var(--gray-700);}.err-sub{font-size:13px;color:var(--gray-500);}
+    #liffErrorDetail{font-size:11px;color:#EF4444;background:#FEE2E2;border-radius:8px;padding:8px 12px;margin-top:8px;display:none;word-break:break-all;}
+    #screenSuccess{background:var(--green-light);gap:12px;text-align:center;}
+    .success-icon{font-size:64px;color:var(--green);}.success-title{font-size:22px;font-weight:700;color:var(--green-dark);}
+    .success-detail{font-size:14px;color:var(--gray-600);line-height:1.8;white-space:pre-line;background:#fff;border-radius:var(--radius-sm);padding:14px 20px;width:100%;max-width:320px;}
+    .btn-again{margin-top:8px;background:var(--green);color:#fff;border:none;border-radius:50px;padding:13px 32px;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;}
+    #screenApp{background:#F0F2F5;justify-content:flex-start;padding:0;min-height:100vh;}
+    .form-header{width:100%;background:var(--green);padding:20px 20px 16px;display:flex;align-items:center;gap:14px;}
+    .avatar{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;}
+    .header-info{flex:1;}.header-name{font-size:17px;font-weight:700;color:#fff;}.header-role{font-size:12px;color:rgba(255,255,255,.75);margin-top:2px;}
+    .tab-bar{width:100%;background:#fff;display:flex;border-bottom:1px solid var(--gray-200);}
+    .tab-btn{flex:1;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;font-family:inherit;color:var(--gray-400);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;}
+    .tab-btn.active{color:var(--green);border-bottom:2px solid var(--green);}
+    .tab-btn i{font-size:20px;}
+    .tab-page{display:none;width:100%;}.tab-page.active{display:block;}
+    .form-body{width:100%;padding:16px 16px 100px;display:flex;flex-direction:column;gap:14px;}
+    .card{background:#fff;border-radius:var(--radius);padding:16px;}
+    .card-label{font-size:12px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+    .session-group{display:flex;flex-direction:column;gap:10px;}
+    .session-pill{width:100%;padding:12px 16px;border-radius:var(--radius-sm);border:2px solid var(--gray-200);background:var(--gray-50);font-size:15px;font-weight:600;font-family:inherit;color:var(--gray-700);cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;transition:all .15s;}
+    .session-pill:active{transform:scale(.98);}
+    .session-pill.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark);}
+    .session-pill .pill-icon{font-size:22px;flex-shrink:0;}.session-pill .pill-info{flex:1;}
+    .session-pill .pill-title{font-size:15px;font-weight:700;}
+    .session-pill .pill-sub{font-size:12px;font-weight:400;color:var(--gray-500);margin-top:2px;}
+    .session-pill.selected .pill-sub{color:var(--green-dark);opacity:.75;}
+    .session-pill .pill-badge{font-size:12px;font-weight:700;background:var(--gray-200);color:var(--gray-600);border-radius:20px;padding:3px 10px;}
+    .session-pill.selected .pill-badge{background:var(--green);color:#fff;}
+    .date-input{width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:2px solid var(--gray-200);background:var(--gray-50);font-size:16px;font-family:inherit;color:var(--gray-800);outline:none;appearance:none;}
+    .date-input:focus{border-color:var(--green);}
+    .summary-badge{display:none;align-items:center;gap:8px;background:var(--green-light);border-radius:var(--radius-sm);padding:10px 14px;margin-top:10px;font-size:14px;font-weight:600;color:var(--green-dark);}
+    .summary-badge.show{display:flex;}.summary-badge i{font-size:16px;}
+    textarea{width:100%;padding:12px 14px;border-radius:var(--radius-sm);border:2px solid var(--gray-200);background:var(--gray-50);font-size:15px;font-family:inherit;color:var(--gray-800);outline:none;resize:none;line-height:1.5;}
+    textarea:focus{border-color:var(--green);}
+    .submit-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:12px 16px 24px;box-shadow:0 -2px 12px rgba(0,0,0,.08);}
+    .submit-btn{width:100%;padding:15px;border-radius:50px;background:var(--green);color:#fff;border:none;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+    .submit-btn:disabled{background:var(--gray-300);cursor:not-allowed;}
+    .submit-btn:active:not(:disabled){background:var(--green-dark);}
+    .history-body{width:100%;padding:12px 12px 24px;display:flex;flex-direction:column;gap:12px;}
+    .cal-card{background:#fff;border-radius:var(--radius);overflow:hidden;}
+    .cal-nav{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;}
+    .cal-nav-btn{width:32px;height:32px;border-radius:50%;background:var(--gray-100);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--gray-700);}
+    .cal-nav-btn:active{background:var(--gray-200);}
+    .cal-month-label{font-size:16px;font-weight:700;color:var(--gray-800);}
+    .cal-days-hdr{display:grid;grid-template-columns:repeat(7,1fr);padding:0 8px 4px;}
+    .day-hdr{text-align:center;font-size:11px;font-weight:600;color:var(--gray-400);padding:4px 0;}
+    .day-hdr.sun{color:#EF4444;}.day-hdr.sat{color:#3B82F6;}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:0 8px 12px;gap:3px;}
+    .day-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:8px;}
+    .day-num{font-size:13px;color:var(--gray-800);line-height:1;}
+    .day-cell.other-month .day-num{color:var(--gray-300);}
+    .day-cell.today{background:var(--green-light);}.day-cell.today .day-num{color:var(--green);font-weight:700;}
+    .day-cell.leave-full{background:var(--green-light);}.day-cell.leave-full .day-num{color:var(--green-dark);font-weight:700;}
+    .day-cell.leave-am,.day-cell.leave-pm{background:var(--amber-light);}
+    .day-cell.leave-am .day-num,.day-cell.leave-pm .day-num{color:var(--amber-dark);font-weight:700;}
+    .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+    .dot-green{background:var(--green);}.dot-amber{background:var(--amber);}
+    .cal-legend{display:flex;gap:14px;padding:0 16px 12px;}
+    .leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-500);}
+    .leg-dot{width:9px;height:9px;border-radius:2px;}
+    .leg-green{background:var(--green-light);border:1px solid var(--green);}
+    .leg-amber{background:var(--amber-light);border:1px solid var(--amber);}
+    .summary-row{background:#fff;border-radius:var(--radius);display:flex;}
+    .sum-item{flex:1;padding:12px 8px;text-align:center;}
+    .sum-item+.sum-item{border-left:1px solid var(--gray-100);}
+    .sum-num{font-size:22px;font-weight:700;color:var(--green);}
+    .sum-num.amber{color:var(--amber);}
+    .sum-lbl{font-size:11px;color:var(--gray-400);margin-top:2px;}
+    .list-card{background:#fff;border-radius:var(--radius);overflow:hidden;}
+    .list-header{padding:12px 16px;font-size:12px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--gray-100);}
+    .leave-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray-100);}
+    .leave-item:last-child{border-bottom:none;}
+    .leave-icon-wrap{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .icon-full{background:var(--green-light);}.icon-full i{color:var(--green-dark);font-size:18px;}
+    .icon-half{background:var(--amber-light);}.icon-half i{color:var(--amber-dark);font-size:18px;}
+    .leave-info{flex:1;min-width:0;}
+    .leave-date-txt{font-size:14px;font-weight:600;color:var(--gray-800);}
+    .leave-sub-txt{font-size:12px;color:var(--gray-500);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .leave-badge{font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;flex-shrink:0;}
+    .badge-full{background:var(--green-light);color:var(--green-dark);}
+    .badge-half{background:var(--amber-light);color:var(--amber-dark);}
+    .empty-state{padding:32px 16px;text-align:center;color:var(--gray-400);font-size:14px;}
+    .empty-state i{font-size:40px;display:block;margin-bottom:8px;}
+    #toastContainer{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:90%;max-width:340px;}
+    .toast{background:var(--gray-800);color:#fff;border-radius:50px;padding:10px 18px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:slideDown .2s ease;}
+    .toast.success{background:#16A34A;}.toast.error{background:#EF4444;}
+    @keyframes slideDown{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
   </style>
 </head>
 <body>
 
-<!-- SCREEN: LOADING -->
 <div id="screenLoading" class="screen active">
   <div class="loading-icon">📋</div>
   <div class="loading-title">ระบบใบลา</div>
@@ -204,7 +127,6 @@
   <div class="spinner"></div>
 </div>
 
-<!-- SCREEN: NOT FOUND -->
 <div id="screenNotFound" class="screen">
   <div class="nf-icon"><i class="fa-solid fa-user-slash"></i></div>
   <div class="nf-title">ไม่พบข้อมูลพนักงาน</div>
@@ -215,7 +137,6 @@
   </div>
 </div>
 
-<!-- SCREEN: LIFF ERROR -->
 <div id="screenLiffError" class="screen">
   <div class="err-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
   <div class="err-title">เปิดผ่าน LINE เท่านั้น</div>
@@ -223,7 +144,6 @@
   <div id="liffErrorDetail"></div>
 </div>
 
-<!-- SCREEN: SUCCESS -->
 <div id="screenSuccess" class="screen">
   <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
   <div class="success-title">ส่งใบลาสำเร็จ</div>
@@ -231,10 +151,7 @@
   <button class="btn-again" onclick="resetForm()">ยื่นใบลาอีกครั้ง</button>
 </div>
 
-<!-- SCREEN: MAIN APP -->
 <div id="screenApp" class="screen">
-
-  <!-- Header -->
   <div class="form-header">
     <div class="avatar" id="formAvatar">?</div>
     <div class="header-info">
@@ -242,53 +159,37 @@
       <div class="header-role" id="formUserRole">—</div>
     </div>
   </div>
-
-  <!-- Tab Bar -->
   <div class="tab-bar">
     <button class="tab-btn active" id="tabLeave" onclick="switchTab('leave')">
-      <i class="fa-solid fa-clipboard-list"></i>
-      ยื่นใบลา
+      <i class="fa-solid fa-clipboard-list"></i>ยื่นใบลา
     </button>
     <button class="tab-btn" id="tabHistory" onclick="switchTab('history')">
-      <i class="fa-solid fa-calendar-days"></i>
-      ประวัติลางาน
+      <i class="fa-solid fa-calendar-days"></i>ประวัติลางาน
     </button>
   </div>
 
-  <!-- TAB: ยื่นใบลา -->
   <div class="tab-page active" id="pageLeave">
     <div class="form-body">
-
       <div class="card">
         <div class="card-label">① เลือกช่วงการลา</div>
         <div class="session-group">
-          <button class="session-pill" id="pill-morning" onclick="selectSession(this,'เช้า',0.5)">
+          <button class="session-pill" onclick="selectSession(this,'เช้า',0.5)">
             <span class="pill-icon">🌅</span>
-            <span class="pill-info">
-              <div class="pill-title">ครึ่งเช้า</div>
-              <div class="pill-sub">08:30 – 12:30 น.</div>
-            </span>
+            <span class="pill-info"><div class="pill-title">ครึ่งเช้า</div><div class="pill-sub">08:30 – 12:30 น.</div></span>
             <span class="pill-badge">0.5 วัน</span>
           </button>
-          <button class="session-pill" id="pill-afternoon" onclick="selectSession(this,'บ่าย',0.5)">
+          <button class="session-pill" onclick="selectSession(this,'บ่าย',0.5)">
             <span class="pill-icon">🌇</span>
-            <span class="pill-info">
-              <div class="pill-title">ครึ่งบ่าย</div>
-              <div class="pill-sub">13:30 – 17:30 น.</div>
-            </span>
+            <span class="pill-info"><div class="pill-title">ครึ่งบ่าย</div><div class="pill-sub">13:30 – 17:30 น.</div></span>
             <span class="pill-badge">0.5 วัน</span>
           </button>
-          <button class="session-pill" id="pill-fullday" onclick="selectSession(this,'เต็มวัน',1)">
+          <button class="session-pill" onclick="selectSession(this,'เต็มวัน',1)">
             <span class="pill-icon">📅</span>
-            <span class="pill-info">
-              <div class="pill-title">เต็มวัน</div>
-              <div class="pill-sub">08:30 – 17:30 น.</div>
-            </span>
+            <span class="pill-info"><div class="pill-title">เต็มวัน</div><div class="pill-sub">08:30 – 17:30 น.</div></span>
             <span class="pill-badge">1 วัน</span>
           </button>
         </div>
       </div>
-
       <div class="card">
         <div class="card-label">② วันที่ลา</div>
         <input type="date" class="date-input" id="lf_date" onchange="updateSummary()" />
@@ -297,12 +198,10 @@
           <span id="summaryText">—</span>
         </div>
       </div>
-
       <div class="card">
         <div class="card-label">③ เหตุผล <span style="font-weight:400;text-transform:none;letter-spacing:0">(ไม่บังคับ)</span></div>
         <textarea id="lf_reason" rows="3" placeholder="ระบุเหตุผลเพิ่มเติม..."></textarea>
       </div>
-
     </div>
     <div class="submit-bar">
       <button class="submit-btn" id="submitBtn" onclick="submitLeave()">
@@ -311,11 +210,8 @@
     </div>
   </div>
 
-  <!-- TAB: ประวัติลางาน -->
   <div class="tab-page" id="pageHistory">
     <div class="history-body">
-
-      <!-- Calendar -->
       <div class="cal-card">
         <div class="cal-nav">
           <button class="cal-nav-btn" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
@@ -323,12 +219,8 @@
           <button class="cal-nav-btn" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
         <div class="cal-days-hdr">
-          <div class="day-hdr sun">อา</div>
-          <div class="day-hdr">จ</div>
-          <div class="day-hdr">อ</div>
-          <div class="day-hdr">พ</div>
-          <div class="day-hdr">พฤ</div>
-          <div class="day-hdr">ศ</div>
+          <div class="day-hdr sun">อา</div><div class="day-hdr">จ</div><div class="day-hdr">อ</div>
+          <div class="day-hdr">พ</div><div class="day-hdr">พฤ</div><div class="day-hdr">ศ</div>
           <div class="day-hdr sat">ส</div>
         </div>
         <div class="cal-grid" id="calGrid"></div>
@@ -337,562 +229,198 @@
           <div class="leg-item"><div class="leg-dot leg-amber"></div>ครึ่งวัน</div>
         </div>
       </div>
-
-      <!-- Summary -->
-      <div class="summary-row" id="calSummary">
+      <div class="summary-row">
         <div class="sum-item"><div class="sum-num" id="sumTotal">0</div><div class="sum-lbl">วันรวม</div></div>
         <div class="sum-item"><div class="sum-num amber" id="sumHalf">0</div><div class="sum-lbl">ครึ่งวัน</div></div>
         <div class="sum-item"><div class="sum-num" id="sumCount">0</div><div class="sum-lbl">ครั้ง</div></div>
       </div>
-
-      <!-- List -->
       <div class="list-card">
         <div class="list-header" id="listHeader">รายการเดือนนี้</div>
         <div id="leaveList"></div>
       </div>
-
     </div>
   </div>
-
-</div><!-- /screenApp -->
+</div>
 
 <div id="toastContainer"></div>
 
 <script>
-// ============================================================
-// CONFIG
-// ============================================================
 var LIFF_ID = '2010076484-cidRdmeV';
 var API_URL = 'https://script.google.com/macros/s/AKfycbx5H77PCh6ehp1S2oTqVKiHCQh2-sfT-GPOvFTs82crSQ24qexfNutycuiPawCp7u5r/exec';
+var _lineUserId='', _currentUser=null, _session='', _days=null;
+var _allLeaves=[], _calYear=new Date().getFullYear(), _calMonth=new Date().getMonth();
+var TH_MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
-// ============================================================
-// STATE
-// ============================================================
-var _lineUserId  = '';
-var _currentUser = null;
-var _session     = '';
-var _days        = null;
-var _allLeaves   = [];
-var _calYear     = new Date().getFullYear();
-var _calMonth    = new Date().getMonth(); // 0-indexed
-
-// ============================================================
-// STARTUP
-// ============================================================
 window.addEventListener('DOMContentLoaded', async function() {
-  var today = new Date().toISOString().split('T')[0];
-  document.getElementById('lf_date').value = today;
-
+  document.getElementById('lf_date').value = new Date().toISOString().split('T')[0];
   try {
     await liff.init({ liffId: LIFF_ID });
-
     if (liff.isInClient() && liff.isLoggedIn()) {
-      var profile = await liff.getProfile();
-      _lineUserId = profile.userId;
-      await findUserByLineId(_lineUserId);
-      return;
+      var p = await liff.getProfile(); _lineUserId = p.userId;
+      await findUserByLineId(_lineUserId); return;
     }
-
-    if (liff.isInClient() && !liff.isLoggedIn()) {
-      liff.login();
-      return;
-    }
-
+    if (liff.isInClient() && !liff.isLoggedIn()) { liff.login(); return; }
     showScreen('screenLiffError');
-
   } catch(e) {
-    console.warn('LIFF init error:', e.message);
-    var errEl = document.getElementById('liffErrorDetail');
-    if (errEl) { errEl.textContent = e.message || String(e); errEl.style.display = 'block'; }
+    var el = document.getElementById('liffErrorDetail');
+    if (el) { el.textContent = e.message||String(e); el.style.display='block'; }
     showScreen('screenLiffError');
   }
 });
 
-// ============================================================
-// FIND USER
-// ============================================================
 async function findUserByLineId(lineId) {
-  if (!API_URL) { showScreen('screenLiffError'); return; }
   try {
-    var res = await apiCall({ action: 'getUsers' });
-    if (!res.success) throw new Error(res.error || 'getUsers failed');
-    var users = res.data || [];
-    _currentUser = users.find(function(u) {
-      return String(u.LineUserID || '').trim() === lineId && u.Status !== 'inactive';
-    }) || null;
-
-    if (!_currentUser) {
-      document.getElementById('displayLineUID').textContent = lineId;
-      showScreen('screenNotFound');
-      return;
-    }
-
-    var initial   = (_currentUser.Name || '?').charAt(0).toUpperCase();
-    var roleLabel = { admin:'Admin', user:'Office', accountant:'ฝ่ายบัญชี', executive:'ผู้บริหาร', labor:'พนักงาน' }[_currentUser.Role] || _currentUser.Role;
-    document.getElementById('formAvatar').textContent   = initial;
+    var res = await apiCall({ action:'getUsers' });
+    if (!res.success) throw new Error(res.error||'getUsers failed');
+    _currentUser = (res.data||[]).find(function(u){ return String(u.LineUserID||'').trim()===lineId && u.Status!=='inactive'; }) || null;
+    if (!_currentUser) { document.getElementById('displayLineUID').textContent=lineId; showScreen('screenNotFound'); return; }
+    var roleLabel = {admin:'Admin',user:'Office',accountant:'ฝ่ายบัญชี',executive:'ผู้บริหาร',labor:'พนักงาน'}[_currentUser.Role]||_currentUser.Role;
+    document.getElementById('formAvatar').textContent   = (_currentUser.Name||'?').charAt(0).toUpperCase();
     document.getElementById('formUserName').textContent = _currentUser.Name;
     document.getElementById('formUserRole').textContent = roleLabel;
     showScreen('screenApp');
-
-    // โหลดประวัติไว้ background
     loadLeaves();
-
-  } catch(e) {
-    showToast('เชื่อมต่อระบบไม่ได้: ' + e.message, 'error');
-    showScreen('screenLiffError');
-  }
+  } catch(e) { showToast('เชื่อมต่อระบบไม่ได้: '+e.message,'error'); showScreen('screenLiffError'); }
 }
 
-// ============================================================
-// TAB SWITCH
-// ============================================================
 function switchTab(tab) {
-  document.getElementById('tabLeave').classList.toggle('active', tab === 'leave');
-  document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
-  document.getElementById('pageLeave').classList.toggle('active', tab === 'leave');
-  document.getElementById('pageHistory').classList.toggle('active', tab === 'history');
-  if (tab === 'history') renderCalendar();
+  document.getElementById('tabLeave').classList.toggle('active', tab==='leave');
+  document.getElementById('tabHistory').classList.toggle('active', tab==='history');
+  document.getElementById('pageLeave').classList.toggle('active', tab==='leave');
+  document.getElementById('pageHistory').classList.toggle('active', tab==='history');
+  if (tab==='history') renderCalendar();
 }
 
-// ============================================================
-// FORM — SELECT SESSION
-// ============================================================
 function selectSession(btn, session, days) {
-  _session = session;
-  _days    = days;
-  document.querySelectorAll('.session-pill').forEach(function(p) { p.classList.remove('selected'); });
+  _session=session; _days=days;
+  document.querySelectorAll('.session-pill').forEach(function(p){p.classList.remove('selected');});
   btn.classList.add('selected');
   updateSummary();
 }
 
 function updateSummary() {
-  var badge = document.getElementById('summaryBadge');
-  var text  = document.getElementById('summaryText');
+  var badge=document.getElementById('summaryBadge'), text=document.getElementById('summaryText');
   if (!_session) { badge.classList.remove('show'); return; }
-  var date = document.getElementById('lf_date').value;
+  var date=document.getElementById('lf_date').value;
   if (!date) { badge.classList.remove('show'); return; }
-  var sessionLabel = { 'เช้า':'ครึ่งเช้า (08:30–12:30 น.)', 'บ่าย':'ครึ่งบ่าย (13:30–17:30 น.)', 'เต็มวัน':'เต็มวัน (08:30–17:30 น.)' }[_session] || _session;
-  text.textContent = date + '  •  ' + sessionLabel + '  •  ' + _days + ' วัน';
+  var lbl={'เช้า':'ครึ่งเช้า (08:30–12:30 น.)','บ่าย':'ครึ่งบ่าย (13:30–17:30 น.)','เต็มวัน':'เต็มวัน (08:30–17:30 น.)'}[_session]||_session;
+  text.textContent = date+'  •  '+lbl+'  •  '+_days+' วัน';
   badge.classList.add('show');
 }
 
-// ============================================================
-// FORM — SUBMIT
-// ============================================================
 async function submitLeave() {
-  if (!_session) { showToast('กรุณาเลือกช่วงการลา', 'error'); return; }
-  var date   = document.getElementById('lf_date').value;
-  var reason = document.getElementById('lf_reason').value.trim();
-  if (!date) { showToast('กรุณาเลือกวันที่ลา', 'error'); return; }
-
-  var btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่ง...';
-
+  if (!_session) { showToast('กรุณาเลือกช่วงการลา','error'); return; }
+  var date=document.getElementById('lf_date').value, reason=document.getElementById('lf_reason').value.trim();
+  if (!date) { showToast('กรุณาเลือกวันที่ลา','error'); return; }
+  var btn=document.getElementById('submitBtn');
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่ง...';
   try {
-    var res = await apiCall({
-      action:  'addLeave',
-      UserID:  _currentUser.UserID,
-      Name:    _currentUser.Name,
-      Date:    date,
-      Days:    _days,
-      Session: _session,
-      Reason:  reason
-    });
-
+    var res=await apiCall({action:'addLeave',UserID:_currentUser.UserID,Name:_currentUser.Name,Date:date,Days:_days,Session:_session,Reason:reason});
     if (res.success) {
-      // เพิ่มเข้า local cache ทันที
-      _allLeaves.push({ Date: date, Days: String(_days), Session: _session, Reason: reason, LeaveID: res.LeaveID || '' });
-      var sessionLabel = { 'เช้า':'ครึ่งเช้า', 'บ่าย':'ครึ่งบ่าย', 'เต็มวัน':'เต็มวัน' }[_session] || _session;
-      var detail = 'วันที่: ' + date + '\nช่วง: ' + sessionLabel + '\nจำนวน: ' + _days + ' วัน' + (reason ? '\nเหตุผล: ' + reason : '');
-      document.getElementById('successDetail').textContent = detail;
+      _allLeaves.push({Date:date,Days:String(_days),Session:_session,Reason:reason,LeaveID:res.LeaveID||''});
+      var sl={'เช้า':'ครึ่งเช้า','บ่าย':'ครึ่งบ่าย','เต็มวัน':'เต็มวัน'}[_session]||_session;
+      document.getElementById('successDetail').textContent='วันที่: '+date+'\nช่วง: '+sl+'\nจำนวน: '+_days+' วัน'+(reason?'\nเหตุผล: '+reason:'');
       showScreen('screenSuccess');
     } else {
-      showToast('เกิดข้อผิดพลาด: ' + (res.error || ''), 'error');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
+      showToast('เกิดข้อผิดพลาด: '+(res.error||''),'error');
+      btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
     }
   } catch(e) {
-    showToast('ส่งไม่สำเร็จ: ' + e.message, 'error');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
+    showToast('ส่งไม่สำเร็จ: '+e.message,'error');
+    btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
   }
 }
 
-// ============================================================
-// FORM — RESET
-// ============================================================
 function resetForm() {
-  _session = ''; _days = null;
-  var today = new Date().toISOString().split('T')[0];
-  document.getElementById('lf_date').value   = today;
-  document.getElementById('lf_reason').value = '';
-  document.querySelectorAll('.session-pill').forEach(function(p) { p.classList.remove('selected'); });
+  _session=''; _days=null;
+  document.getElementById('lf_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('lf_reason').value='';
+  document.querySelectorAll('.session-pill').forEach(function(p){p.classList.remove('selected');});
   document.getElementById('summaryBadge').classList.remove('show');
-  var btn = document.getElementById('submitBtn');
-  btn.disabled = false;
-  btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
-  showScreen('screenApp');
-  switchTab('leave');
+  var btn=document.getElementById('submitBtn'); btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
+  showScreen('screenApp'); switchTab('leave');
 }
 
-// ============================================================
-// HISTORY — LOAD LEAVES
-// ============================================================
 async function loadLeaves() {
   try {
-    var res = await apiCall({ action: 'getLeaves', UserID: _currentUser.UserID });
-    if (res.success) {
-      _allLeaves = res.data || [];
-      renderCalendar();
-    }
-  } catch(e) {
-    console.warn('loadLeaves error:', e.message);
-  }
+    var res=await apiCall({action:'getLeaves',UserID:_currentUser.UserID});
+    if (res.success) { _allLeaves=res.data||[]; renderCalendar(); }
+  } catch(e) { console.warn('loadLeaves:',e.message); }
 }
 
-// ============================================================
-// HISTORY — CALENDAR
-// ============================================================
-var TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
-                 'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-
-function changeMonth(delta) {
-  _calMonth += delta;
-  if (_calMonth < 0)  { _calMonth = 11; _calYear--; }
-  if (_calMonth > 11) { _calMonth = 0;  _calYear++; }
+function changeMonth(d) {
+  _calMonth+=d;
+  if (_calMonth<0){_calMonth=11;_calYear--;}
+  if (_calMonth>11){_calMonth=0;_calYear++;}
   renderCalendar();
 }
 
 function renderCalendar() {
-  var thYear = _calYear + 543;
-  document.getElementById('calMonthLabel').textContent = TH_MONTHS[_calMonth] + ' ' + thYear;
-
-  // กรองเฉพาะเดือนนี้
-  var monthStr = _calYear + '-' + String(_calMonth + 1).padStart(2, '0');
-  var monthLeaves = _allLeaves.filter(function(l) {
-    return String(l.Date || '').startsWith(monthStr);
-  });
-
-  // สร้าง lookup: date string → leave object
-  var leaveMap = {};
-  monthLeaves.forEach(function(l) {
-    leaveMap[l.Date] = l;
-  });
-
-  // สร้าง grid
-  var firstDay = new Date(_calYear, _calMonth, 1).getDay(); // 0=อา
-  var daysInMonth = new Date(_calYear, _calMonth + 1, 0).getDate();
-  var daysInPrev  = new Date(_calYear, _calMonth, 0).getDate();
-  var today = new Date().toISOString().split('T')[0];
-
-  var grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
-
-  // วันก่อนหน้า
-  for (var i = firstDay - 1; i >= 0; i--) {
-    var cell = document.createElement('div');
-    cell.className = 'day-cell other-month';
-    cell.innerHTML = '<span class="day-num">' + (daysInPrev - i) + '</span>';
-    grid.appendChild(cell);
+  document.getElementById('calMonthLabel').textContent=TH_MONTHS[_calMonth]+' '+(_calYear+543);
+  var ms=_calYear+'-'+String(_calMonth+1).padStart(2,'0');
+  var ml=_allLeaves.filter(function(l){return String(l.Date||'').startsWith(ms);});
+  var lm={}; ml.forEach(function(l){lm[l.Date]=l;});
+  var fd=new Date(_calYear,_calMonth,1).getDay();
+  var dim=new Date(_calYear,_calMonth+1,0).getDate();
+  var dip=new Date(_calYear,_calMonth,0).getDate();
+  var today=new Date().toISOString().split('T')[0];
+  var grid=document.getElementById('calGrid'); grid.innerHTML='';
+  for (var i=fd-1;i>=0;i--){var c=document.createElement('div');c.className='day-cell other-month';c.innerHTML='<span class="day-num">'+(dip-i)+'</span>';grid.appendChild(c);}
+  for (var d=1;d<=dim;d++){
+    var ds=_calYear+'-'+String(_calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var lv=lm[ds]; var c=document.createElement('div'); var cls=['day-cell'];
+    if (ds===today) cls.push('today');
+    if (lv){var s=String(lv.Session||'');cls.push(s==='เต็มวัน'?'leave-full':s==='เช้า'?'leave-am':'leave-pm');}
+    c.className=cls.join(' ');
+    var dot=lv?'<div class="dot '+(String(lv.Session||'')==='เต็มวัน'?'dot-green':'dot-amber')+'"></div>':'';
+    c.innerHTML='<span class="day-num">'+d+'</span>'+dot; grid.appendChild(c);
   }
-
-  // วันในเดือน
-  for (var d = 1; d <= daysInMonth; d++) {
-    var dateStr = _calYear + '-' + String(_calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    var leave   = leaveMap[dateStr];
-    var cell    = document.createElement('div');
-    var classes = ['day-cell'];
-
-    if (dateStr === today) classes.push('today');
-    if (leave) {
-      var sess = String(leave.Session || '');
-      if (sess === 'เต็มวัน') { classes.push('leave-full'); }
-      else { classes.push(sess === 'เช้า' ? 'leave-am' : 'leave-pm'); }
-    }
-
-    cell.className = classes.join(' ');
-    var dotHtml = '';
-    if (leave) {
-      var dotClass = (String(leave.Session || '') === 'เต็มวัน') ? 'dot dot-green' : 'dot dot-amber';
-      dotHtml = '<div class="' + dotClass + '"></div>';
-    }
-    cell.innerHTML = '<span class="day-num">' + d + '</span>' + dotHtml;
-    grid.appendChild(cell);
-  }
-
-  // วันถัดไป
-  var filled = firstDay + daysInMonth;
-  var remaining = filled % 7 === 0 ? 0 : 7 - (filled % 7);
-  for (var n = 1; n <= remaining; n++) {
-    var cell = document.createElement('div');
-    cell.className = 'day-cell other-month';
-    cell.innerHTML = '<span class="day-num">' + n + '</span>';
-    grid.appendChild(cell);
-  }
-
-  // Summary
-  var totalDays = 0, halfCount = 0;
-  monthLeaves.forEach(function(l) { totalDays += parseFloat(l.Days) || 0; if (parseFloat(l.Days) < 1) halfCount++; });
-  document.getElementById('sumTotal').textContent = totalDays % 1 === 0 ? totalDays : totalDays.toFixed(1);
-  document.getElementById('sumHalf').textContent  = halfCount;
-  document.getElementById('sumCount').textContent = monthLeaves.length;
-
-  // List header
-  document.getElementById('listHeader').textContent = 'รายการ' + TH_MONTHS[_calMonth];
-
-  // Leave list
-  renderLeaveList(monthLeaves);
+  var fill=fd+dim; var rem=fill%7===0?0:7-(fill%7);
+  for (var n=1;n<=rem;n++){var c=document.createElement('div');c.className='day-cell other-month';c.innerHTML='<span class="day-num">'+n+'</span>';grid.appendChild(c);}
+  var tot=0,half=0; ml.forEach(function(l){tot+=parseFloat(l.Days)||0;if((parseFloat(l.Days)||0)<1)half++;});
+  document.getElementById('sumTotal').textContent=tot%1===0?tot:tot.toFixed(1);
+  document.getElementById('sumHalf').textContent=half;
+  document.getElementById('sumCount').textContent=ml.length;
+  document.getElementById('listHeader').textContent='รายการ'+TH_MONTHS[_calMonth];
+  renderLeaveList(ml);
 }
 
 function renderLeaveList(leaves) {
-  var container = document.getElementById('leaveList');
-  if (!leaves.length) {
-    container.innerHTML = '<div class="empty-state"><i class="fa-regular fa-calendar-xmark"></i>ไม่มีการลาในเดือนนี้</div>';
-    return;
-  }
-
-  // เรียงวันที่ล่าสุดก่อน
-  var sorted = leaves.slice().sort(function(a, b) { return b.Date > a.Date ? 1 : -1; });
-
-  container.innerHTML = sorted.map(function(l) {
-    var sess    = String(l.Session || '');
-    var isFull  = sess === 'เต็มวัน';
-    var iconCls = isFull ? 'leave-icon-wrap icon-full' : 'leave-icon-wrap icon-half';
-    var iconFA  = isFull ? 'fa-calendar-day' : 'fa-sun';
-    var badgeCls = isFull ? 'leave-badge badge-full' : 'leave-badge badge-half';
-    var days    = parseFloat(l.Days) || 0;
-    var daysStr = (days % 1 === 0 ? days : days.toFixed(1)) + ' วัน';
-    var sessLabel = { 'เต็มวัน':'เต็มวัน', 'เช้า':'ครึ่งเช้า', 'บ่าย':'ครึ่งบ่าย' }[sess] || sess;
-    var reason  = l.Reason && l.Reason !== '' ? l.Reason : '';
-    var sub     = sessLabel + (reason ? ' • ' + reason : '');
-
-    // แปลงวันที่เป็นภาษาไทย
-    var dateDisp = l.Date || '';
-    try {
-      var parts = l.Date.split('-');
-      var thY = parseInt(parts[0]) + 543;
-      var mNames = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-      dateDisp = parseInt(parts[2]) + ' ' + mNames[parseInt(parts[1]) - 1] + ' ' + thY;
-    } catch(e) {}
-
-    return '<div class="leave-item">' +
-      '<div class="' + iconCls + '"><i class="fa-solid ' + iconFA + '"></i></div>' +
-      '<div class="leave-info">' +
-        '<div class="leave-date-txt">' + dateDisp + '</div>' +
-        '<div class="leave-sub-txt">' + sub + '</div>' +
-      '</div>' +
-      '<div class="' + badgeCls + '">' + daysStr + '</div>' +
-    '</div>';
+  var c=document.getElementById('leaveList');
+  if (!leaves.length){c.innerHTML='<div class="empty-state"><i class="fa-regular fa-calendar-xmark"></i>ไม่มีการลาในเดือนนี้</div>';return;}
+  var sorted=leaves.slice().sort(function(a,b){return b.Date>a.Date?1:-1;});
+  c.innerHTML=sorted.map(function(l){
+    var s=String(l.Session||''),full=s==='เต็มวัน';
+    var days=parseFloat(l.Days)||0, ds=(days%1===0?days:days.toFixed(1))+' วัน';
+    var sl={'เต็มวัน':'เต็มวัน','เช้า':'ครึ่งเช้า','บ่าย':'ครึ่งบ่าย'}[s]||s;
+    var sub=sl+(l.Reason&&l.Reason!==''?' • '+l.Reason:'');
+    var dd=l.Date||'';
+    try{var pt=l.Date.split('-'),mn=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];dd=parseInt(pt[2])+' '+mn[parseInt(pt[1])-1]+' '+(parseInt(pt[0])+543);}catch(e2){}
+    return '<div class="leave-item">'+
+      '<div class="leave-icon-wrap '+(full?'icon-full':'icon-half')+'"><i class="fa-solid '+(full?'fa-calendar-day':'fa-sun')+'"></i></div>'+
+      '<div class="leave-info"><div class="leave-date-txt">'+dd+'</div><div class="leave-sub-txt">'+sub+'</div></div>'+
+      '<div class="leave-badge '+(full?'badge-full':'badge-half')+'">'+ds+'</div></div>';
   }).join('');
 }
 
-// ============================================================
-// HELPERS
-// ============================================================
 function showScreen(id) {
-  var all = ['screenLoading','screenNotFound','screenLiffError','screenSuccess','screenApp'];
-  all.forEach(function(s) {
-    var el = document.getElementById(s);
-    if (!el) return;
-    el.style.display = (s === id) ? 'flex' : 'none';
-    el.classList.toggle('active', s === id);
+  ['screenLoading','screenNotFound','screenLiffError','screenSuccess','screenApp'].forEach(function(s){
+    var el=document.getElementById(s); if(!el)return;
+    el.style.display=(s===id)?'flex':'none'; el.classList.toggle('active',s===id);
   });
 }
 
 async function apiCall(params) {
-  if (!API_URL) throw new Error('ยังไม่ได้ตั้งค่า API URL');
-  var res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(params),
-    redirect: 'follow'
-  });
+  var res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(params),redirect:'follow'});
   return res.json();
 }
 
-function showToast(msg, type) {
-  var icons = { success:'fa-circle-check', error:'fa-circle-xmark' };
-  var container = document.getElementById('toastContainer');
-  var toast = document.createElement('div');
-  toast.className = 'toast ' + (type || '');
-  toast.innerHTML = '<i class="fa-solid ' + (icons[type] || 'fa-info-circle') + '"></i> ' + msg;
-  container.appendChild(toast);
-  setTimeout(function() { toast.remove(); }, 4000);
-}
-</script>
-</body>
-</html>
-==========================================
-async function loadLeaves() {
-  try {
-    var res = await apiCall({ action: 'getLeaves', UserID: _currentUser.UserID });
-    if (res.success) {
-      _allLeaves = res.data || [];
-      renderCalendar();
-    }
-  } catch(e) {
-    console.warn('loadLeaves error:', e.message);
-  }
-}
-
-// ============================================================
-// HISTORY — CALENDAR
-// ============================================================
-var TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
-                 'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-
-function changeMonth(delta) {
-  _calMonth += delta;
-  if (_calMonth < 0)  { _calMonth = 11; _calYear--; }
-  if (_calMonth > 11) { _calMonth = 0;  _calYear++; }
-  renderCalendar();
-}
-
-function renderCalendar() {
-  var thYear = _calYear + 543;
-  document.getElementById('calMonthLabel').textContent = TH_MONTHS[_calMonth] + ' ' + thYear;
-  var monthStr = _calYear + '-' + String(_calMonth + 1).padStart(2, '0');
-  var monthLeaves = _allLeaves.filter(function(l) { return String(l.Date || '').startsWith(monthStr); });
-  var leaveMap = {};
-  monthLeaves.forEach(function(l) { leaveMap[l.Date] = l; });
-
-  var firstDay = new Date(_calYear, _calMonth, 1).getDay();
-  var daysInMonth = new Date(_calYear, _calMonth + 1, 0).getDate();
-  var daysInPrev  = new Date(_calYear, _calMonth, 0).getDate();
-  var today = new Date().toISOString().split('T')[0];
-  var grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
-
-  for (var i = firstDay - 1; i >= 0; i--) {
-    var cell = document.createElement('div');
-    cell.className = 'day-cell other-month';
-    cell.innerHTML = '<span class="day-num">' + (daysInPrev - i) + '</span>';
-    grid.appendChild(cell);
-  }
-
-  for (var d = 1; d <= daysInMonth; d++) {
-    var dateStr = _calYear + '-' + String(_calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    var leave = leaveMap[dateStr];
-    var cell  = document.createElement('div');
-    var classes = ['day-cell'];
-    if (dateStr === today) classes.push('today');
-    if (leave) {
-      var sess = String(leave.Session || '');
-      if (sess === 'เต็มวัน') classes.push('leave-full');
-      else classes.push(sess === 'เช้า' ? 'leave-am' : 'leave-pm');
-    }
-    cell.className = classes.join(' ');
-    var dotHtml = leave ? '<div class="dot ' + (String(leave.Session||'') === 'เต็มวัน' ? 'dot-green' : 'dot-amber') + '"></div>' : '';
-    cell.innerHTML = '<span class="day-num">' + d + '</span>' + dotHtml;
-    grid.appendChild(cell);
-  }
-
-  var filled = firstDay + daysInMonth;
-  var remaining = filled % 7 === 0 ? 0 : 7 - (filled % 7);
-  for (var n = 1; n <= remaining; n++) {
-    var cell = document.createElement('div');
-    cell.className = 'day-cell other-month';
-    cell.innerHTML = '<span class="day-num">' + n + '</span>';
-    grid.appendChild(cell);
-  }
-
-  var totalDays = 0, halfCount = 0;
-  monthLeaves.forEach(function(l) {
-    totalDays += parseFloat(l.Days) || 0;
-    if (parseFloat(l.Days) < 1) halfCount++;
-  });
-  document.getElementById('sumTotal').textContent = totalDays % 1 === 0 ? totalDays : totalDays.toFixed(1);
-  document.getElementById('sumHalf').textContent  = halfCount;
-  document.getElementById('sumCount').textContent = monthLeaves.length;
-  document.getElementById('listHeader').textContent = 'รายการ' + TH_MONTHS[_calMonth];
-  renderLeaveList(monthLeaves);
-}
-
-function renderLeaveList(leaves) {
-  var container = document.getElementById('leaveList');
-  if (!leaves.length) {
-    container.innerHTML = '<div class="empty-state"><i class="fa-regular fa-calendar-xmark"></i>ไม่มีการลาในเดือนนี้</div>';
-    return;
-  }
-  var sorted = leaves.slice().sort(function(a,b) { return b.Date > a.Date ? 1 : -1; });
-  container.innerHTML = sorted.map(function(l) {
-    var sess = String(l.Session || '');
-    var isFull = sess === 'เต็มวัน';
-    var iconCls  = isFull ? 'leave-icon-wrap icon-full' : 'leave-icon-wrap icon-half';
-    var iconFA   = isFull ? 'fa-calendar-day' : 'fa-sun';
-    var badgeCls = isFull ? 'leave-badge badge-full' : 'leave-badge badge-half';
-    var days    = parseFloat(l.Days) || 0;
-    var daysStr = (days % 1 === 0 ? days : days.toFixed(1)) + ' วัน';
-    var sessLabel = { 'เต็มวัน':'เต็มวัน', 'เช้า':'ครึ่งเช้า', 'บ่าย':'ครึ่งบ่าย' }[sess] || sess;
-    var reason  = l.Reason && l.Reason !== '' ? l.Reason : '';
-    var sub     = sessLabel + (reason ? ' • ' + reason : '');
-    var dateDisp = l.Date || '';
-    try {
-      var parts = l.Date.split('-');
-      var thY = parseInt(parts[0]) + 543;
-      var mNames = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-      dateDisp = parseInt(parts[2]) + ' ' + mNames[parseInt(parts[1])-1] + ' ' + thY;
-    } catch(e2) {}
-    return '<div class="leave-item">' +
-      '<div class="' + iconCls + '"><i class="fa-solid ' + iconFA + '"></i></div>' +
-      '<div class="leave-info"><div class="leave-date-txt">' + dateDisp + '</div><div class="leave-sub-txt">' + sub + '</div></div>' +
-      '<div class="' + badgeCls + '">' + daysStr + '</div>' +
-    '</div>';
-  }).join('');
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-function showScreen(id) {
-  var all = ['screenLoading','screenNotFound','screenLiffError','screenSuccess','screenApp'];
-  all.forEach(function(s) {
-    var el = document.getElementById(s);
-    if (!el) return;
-    el.style.display = (s === id) ? 'flex' : 'none';
-    el.classList.toggle('active', s === id);
-  });
-}
-
-async function apiCall(params) {
-  if (!API_URL) throw new Error('ยังไม่ได้ตั้งค่า API URL');
-  var res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(params),
-    redirect: 'follow'
-  });
-  return res.json();
-}
-
-function showToast(msg, type) {
-  var icons = { success:'fa-circle-check', error:'fa-circle-xmark' };
-  var container = document.getElementById('toastContainer');
-  var toast = document.createElement('div');
-  toast.className = 'toast ' + (type || '');
-  toast.innerHTML = '<i class="fa-solid ' + (icons[type] || 'fa-info-circle') + '"></i> ' + msg;
-  container.appendChild(toast);
-  setTimeout(function() { toast.remove(); }, 4000);
-}
-</script>
-</body>
-</html>
- },
-    body: JSON.stringify(params),
-    redirect: 'follow'
-  });
-  return res.json();
-}
-
-function showToast(msg, type) {
-  var icons = { success:'fa-circle-check', error:'fa-circle-xmark' };
-  var container = document.getElementById('toastContainer');
-  var toast = document.createElement('div');
-  toast.className = 'toast ' + (type || '');
-  toast.innerHTML = '<i class="fa-solid ' + (icons[type] || 'fa-info-circle') + '"></i> ' + msg;
-  container.appendChild(toast);
-  setTimeout(function() { toast.remove(); }, 4000);
+function showToast(msg,type) {
+  var icons={success:'fa-circle-check',error:'fa-circle-xmark'};
+  var t=document.createElement('div'); t.className='toast '+(type||'');
+  t.innerHTML='<i class="fa-solid '+(icons[type]||'fa-info-circle')+'"></i> '+msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(function(){t.remove();},4000);
 }
 </script>
 </body>
