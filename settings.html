@@ -564,9 +564,7 @@
       <div class="nav-item" data-page="job-settings" onclick="navigateSetting('job-settings')">
         <i class="fa-solid fa-briefcase"></i> รายการ JOB
       </div>
-      <div class="nav-item" data-page="holiday-settings" onclick="navigateSetting('holiday-settings')">
-        <i class="fa-solid fa-calendar-xmark"></i> วันหยุด
-      </div>
+
     </aside>
 
     <!-- CONTENT -->
@@ -695,50 +693,6 @@
         </div>
       </div>
 
-      <!-- ===== HOLIDAY SETTINGS PAGE ===== -->
-      <div class="page" id="page-holiday-settings">
-        <div class="table-card" style="padding:0;max-width:600px;">
-          <div style="padding:14px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:10px;">
-            <span style="font-size:15px;font-weight:700;flex:1;color:var(--gray-800);"><i class="fa-solid fa-calendar-xmark" style="margin-right:8px;color:var(--danger);"></i>จัดการวันหยุด</span>
-            <button class="btn btn-primary btn-sm" onclick="openAddHolidayModal()">
-              <i class="fa-solid fa-plus"></i> เพิ่มวันหยุด
-            </button>
-          </div>
-          <table class="data-table">
-            <thead><tr>
-              <th style="width:40px;text-align:center;">#</th>
-              <th>วันที่</th>
-              <th>ชื่อวันหยุด</th>
-              <th style="width:80px;text-align:center;">จัดการ</th>
-            </tr></thead>
-            <tbody id="holidayTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ===== HOLIDAY MODAL ===== -->
-      <div class="modal-overlay hidden" id="holidayModal">
-        <div class="modal" style="max-width:400px;">
-          <div class="modal-header">
-            <span class="modal-title">เพิ่มวันหยุด</span>
-            <button class="modal-close" onclick="closeHolidayModal()"><i class="fa-solid fa-xmark"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label class="form-label">วันที่ <span style="color:var(--danger)">*</span></label>
-              <input type="date" class="form-control" id="hm_date"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">ชื่อวันหยุด <span style="color:var(--danger)">*</span></label>
-              <input type="text" class="form-control" id="hm_name" placeholder="เช่น วันสงกรานต์"/>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeHolidayModal()">ยกเลิก</button>
-            <button class="btn btn-primary" onclick="saveHoliday()">บันทึก</button>
-          </div>
-        </div>
-      </div>
 
       <!-- ===== DROPDOWN SETTINGS PAGE ===== -->
       <div class="page" id="page-dropdown-settings">
@@ -1604,7 +1558,6 @@ function showStatus(msg, type) { showToast(msg, type); }
 // SETTINGS NAVIGATION
 // ============================================================
 function navigateSetting(page) {
-  if (page === 'holiday-settings') { loadHolidays(); }
   document.querySelectorAll('.settings-sidebar .nav-item').forEach(function(el) {
     el.classList.toggle('active', el.getAttribute('data-page') === page);
   });
@@ -2460,80 +2413,6 @@ document.addEventListener('DOMContentLoaded', async function() {
   navigateSetting('settings');
 });
 
-// ============================================================
-// BLOCK 8: HOLIDAY SETTINGS
-// ============================================================
-var _holidays = [];
-
-async function loadHolidays() {
-  try {
-    var res = await apiCall({ action: 'getHolidays' });
-    if (res.success) {
-      _holidays = res.data || [];
-      renderHolidayTable();
-    }
-  } catch(e) { showStatus('โหลดวันหยุดไม่ได้: ' + e.message, 'error'); }
-}
-
-function renderHolidayTable() {
-  var tbody = document.getElementById('holidayTableBody');
-  if (!tbody) return;
-  _holidays.sort(function(a,b){ return a.Date > b.Date ? 1 : -1; });
-  if (!_holidays.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray-400);padding:24px;">ยังไม่มีวันหยุด</td></tr>';
-    return;
-  }
-  tbody.innerHTML = _holidays.map(function(h, i) {
-    var d = new Date(h.Date);
-    var dateStr = d.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
-    return '<tr>' +
-      '<td style="text-align:center;color:var(--gray-400);">' + (i+1) + '</td>' +
-      '<td style="font-weight:500;">' + dateStr + '</td>' +
-      '<td>' + (h.Name || '-') + '</td>' +
-      '<td style="text-align:center;">' +
-        '<button class="btn btn-danger btn-sm" style="padding:4px 9px;" data-id="' + h.HolidayID + '" data-name="' + (h.Name||'').replace(/"/g,'&quot;') + '" onclick="deleteHolidayRecord(this.dataset.id,this.dataset.name)">' +
-          '<i class="fa-solid fa-trash"></i>' +
-        '</button>' +
-      '</td>' +
-    '</tr>';
-  }).join('');
-}
-
-function openAddHolidayModal() {
-  document.getElementById('hm_date').value = '';
-  document.getElementById('hm_name').value = '';
-  document.getElementById('holidayModal').classList.remove('hidden');
-}
-
-function closeHolidayModal() {
-  document.getElementById('holidayModal').classList.add('hidden');
-}
-
-async function saveHoliday() {
-  var date = document.getElementById('hm_date').value;
-  var name = document.getElementById('hm_name').value.trim();
-  if (!date) { showStatus('กรุณาเลือกวันที่', 'error'); return; }
-  if (!name) { showStatus('กรุณาระบุชื่อวันหยุด', 'error'); return; }
-  try {
-    var res = await apiCall({ action: 'addHoliday', Date: date, Name: name });
-    if (res.success) {
-      closeHolidayModal();
-      showStatus('เพิ่มวันหยุดสำเร็จ', 'success');
-      await loadHolidays();
-    } else { showStatus('เกิดข้อผิดพลาด: ' + (res.error||''), 'error'); }
-  } catch(e) { showStatus('เกิดข้อผิดพลาด: ' + e.message, 'error'); }
-}
-
-async function deleteHolidayRecord(id, name) {
-  if (!confirm('ลบวันหยุด "' + name + '" ?')) return;
-  try {
-    var res = await apiCall({ action: 'deleteHoliday', HolidayID: id });
-    if (res.success) {
-      showStatus('ลบวันหยุดสำเร็จ', 'success');
-      await loadHolidays();
-    } else { showStatus('เกิดข้อผิดพลาด: ' + (res.error||''), 'error'); }
-  } catch(e) { showStatus('เกิดข้อผิดพลาด: ' + e.message, 'error'); }
-}
 
 </script>
 </body>
