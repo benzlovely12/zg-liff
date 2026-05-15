@@ -979,32 +979,7 @@ function applyStatusConfig(cfg) {}
 // ============================================================
 // BLOCK B: SYSTEM STARTUP — INIT + API CONFIG
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  initDropdowns();
-  checkApiConfig();
-  // เช็ค sessionStorage ก่อน — ถ้ามี user ให้ข้าม login
-  const savedUser = sessionStorage.getItem('CURRENT_USER');
-  if (savedUser) {
-    try {
-      const user = JSON.parse(savedUser);
-      // โหลด users list ใน background (ไม่รอ)
-      if (API_URL) {
-        apiCall({ action: 'getUsers' }).then(res => {
-          if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-            ALL_USERS = res.data;
-          }
-        }).catch(() => {});
-      }
-      // restore user และโหลดข้อมูลใหม่จาก Sheet ทันที
-      _restoreUserSession(user);
-      return;
-    } catch(e) {
-      sessionStorage.removeItem('CURRENT_USER');
-    }
-  }
-  // ไม่มี session → แสดง login ปกติ
-  loadUsersAndShowScreen();
-});
+// (login flow ของ app.html — ไม่ใช้ใน settings.html)
 
 function initDropdowns() {
   // Province, Brand — ยังว่างอยู่ จะ populate ใน populateCarDropdownsFromDD() หลัง DD_DATA โหลด
