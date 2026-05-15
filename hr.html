@@ -32,6 +32,7 @@
       --gray-700: #374151;
       --gray-800: #1f2937;
       --gray-900: #111827;
+      --sidebar-bg: #1e293b;
       --sidebar-width: 260px;
       --header-height: 64px;
       --radius: 12px;
@@ -1134,7 +1135,7 @@ function hrGoBack() {
 // ============================================================
 // LEAVE — TABLE + STATS
 // ============================================================
-var STATUS_LABEL = { pending: 'รอพิจารณา', approved: 'อนุมัติ', rejected: 'ไม่อนุมัติ' };
+var STATUS_LABEL = { pending: 'รอพิจารณา', approved: 'อนุมัติ', rejected: 'ไม่อนุมัติ', '': 'รอพิจารณา' };
 var STATUS_BADGE = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected' };
 
 function renderLeaveTable() {
@@ -1157,9 +1158,6 @@ function renderLeaveTable() {
   var statsEl = document.getElementById('leaveStats');
   if (statsEl) {
     statsEl.innerHTML =
-      '<div class="hr-stat-card"><div class="stat-label">รอพิจารณา</div><div class="stat-value" style="color:var(--warning);">' + pending + '</div><div class="stat-sub">รายการ</div></div>' +
-      '<div class="hr-stat-card"><div class="stat-label">อนุมัติแล้ว</div><div class="stat-value" style="color:var(--success);">' + approved + '</div><div class="stat-sub">รายการ</div></div>' +
-      '<div class="hr-stat-card"><div class="stat-label">วันลารวม</div><div class="stat-value" style="color:var(--primary);">' + totalDays + '</div><div class="stat-sub">วัน (อนุมัติแล้ว)</div></div>' +
       '<div class="hr-stat-card"><div class="stat-label">ทั้งหมด</div><div class="stat-value">' + _hrLeaves.length + '</div><div class="stat-sub">รายการ</div></div>';
   }
 
@@ -1181,7 +1179,7 @@ function renderLeaveTable() {
       '<td>' + (r.LeaveType || '-') + '</td>' +
       '<td style="font-size:13px;color:var(--gray-600);">' + (r.StartDate || '') + (r.EndDate && r.EndDate !== r.StartDate ? ' — ' + r.EndDate : '') + '</td>' +
       '<td style="text-align:center;font-weight:600;">' + (r.Days || '-') + ' วัน</td>' +
-      '<td style="color:var(--gray-600);font-size:13px;">' + (r.Reason || '-') + '</td>' +
+      '<td style="color:var(--gray-600);font-size:13px;">' + (r.Reason && r.Reason !== '1899-12-30' ? r.Reason : '-') + '</td>' +
       '<td>' + badge + '</td>' +
       '<td style="text-align:center;">' + actions + '</td>' +
       '</tr>';
