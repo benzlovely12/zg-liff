@@ -975,23 +975,9 @@ function getCarModels(brand, type) {
 // ============================================================
 // BLOCK B: SYSTEM STARTUP — INIT + API CONFIG
 // ============================================================
-document.addEventListener('DOMContentLoaded', async () => {
-  // โหลด API_URL จาก localStorage ก่อนทุกอย่าง
-  var savedUrl = localStorage.getItem('autoRepairApiUrl');
-  if (savedUrl) {
-    API_URL = savedUrl;
-    var urlEl = document.getElementById('settingsApiUrl');
-    if (urlEl) urlEl.value = API_URL;
-  }
-
+document.addEventListener('DOMContentLoaded', () => {
   initDropdowns();
   checkApiConfig();
-
-  // โหลด DD settings ก่อน (ใช้ API_URL ที่เพิ่งโหลดมา)
-  if (API_URL) {
-    try { await loadDDSettings(); } catch(e) { console.warn('loadDDSettings on startup:', e); }
-  }
-
   // เช็ค sessionStorage ก่อน — ถ้ามี user ให้ข้าม login
   const savedUser = sessionStorage.getItem('CURRENT_USER');
   if (savedUser) {
@@ -1005,7 +991,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         }).catch(() => {});
       }
-      // restore user
+      // restore user และโหลดข้อมูลใหม่จาก Sheet ทันที
       _restoreUserSession(user);
       return;
     } catch(e) {
@@ -2413,7 +2399,22 @@ function toggleStatusArchive(statusName, checked) {
 // ============================================================
 // BLOCK 8: HISTORY — ประวัติงานย้อนหลัง (Archive)
 
-// (STARTUP รวมไว้ใน DOMContentLoaded ด้านบนแล้ว)
+// ============================================================
+// STARTUP
+// ============================================================
+document.addEventListener('DOMContentLoaded', async function() {
+  var saved = localStorage.getItem('autoRepairApiUrl');
+  if (saved) {
+    API_URL = saved;
+    var el = document.getElementById('settingsApiUrl');
+    if (el) el.value = API_URL;
+  }
+  // โหลด DD ก่อน แล้วค่อย navigate — ป้องกัน dropdown ว่าง
+  if (API_URL) {
+    try { await loadDDSettings(); } catch(e) { console.warn('loadDDSettings:', e); }
+  }
+  navigateSetting('settings');
+});
 </script>
 </body>
 </html>
