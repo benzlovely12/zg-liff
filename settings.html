@@ -2491,7 +2491,7 @@ function renderHolidayTable() {
       '<td style="font-weight:500;">' + dateStr + '</td>' +
       '<td>' + (h.Name || '-') + '</td>' +
       '<td style="text-align:center;">' +
-        '<button class="btn btn-danger btn-sm" style="padding:4px 9px;" onclick="deleteHolidayRecord('' + h.HolidayID + '','' + (h.Name||'') + '')">' +
+        '<button class="btn btn-danger btn-sm" style="padding:4px 9px;" data-id="' + h.HolidayID + '" data-name="' + (h.Name||'').replace(/"/g,'&quot;') + '" onclick="deleteHolidayRecord(this.dataset.id,this.dataset.name)">' +
           '<i class="fa-solid fa-trash"></i>' +
         '</button>' +
       '</td>' +

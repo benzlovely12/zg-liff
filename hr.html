@@ -897,7 +897,7 @@ function initDropdowns() {
   // Province, Brand — ยังว่างอยู่ จะ populate ใน populateCarDropdownsFromDD() หลัง DD_DATA โหลด
 
   // Settings URL
-  document.getElementById('settingsApiUrl').value = API_URL;
+  var su = document.getElementById('settingsApiUrl'); if (su) su.value = API_URL;
 
   // Populate all DD_DATA-driven dropdowns (insurance, insCase, referredBy, workload, etc.)
   // ครั้งแรกข้อมูลยังไม่มา — จะ refresh อีกครั้งใน refreshAllDropdowns() หลัง getDDSettings
