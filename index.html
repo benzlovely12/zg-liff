@@ -66,7 +66,12 @@
     #screenSuccess { background: var(--green-light); gap: 12px; text-align: center; }
     .success-icon { font-size: 64px; color: var(--green); }
     .success-title { font-size: 22px; font-weight: 700; color: var(--green-dark); }
-    .success-detail { font-size: 14px; color: var(--gray-600); line-height: 1.8; white-space: pre-line; background: #fff; border-radius: var(--radius-sm); padding: 14px 20px; width: 100%; max-width: 320px; }
+    .success-detail {
+      font-size: 14px; color: var(--gray-600); line-height: 1.8;
+      white-space: pre-line; background: #fff;
+      border-radius: var(--radius-sm); padding: 14px 20px;
+      width: 100%; max-width: 320px;
+    }
     .btn-again { margin-top: 8px; background: var(--green); color: #fff; border: none; border-radius: 50px; padding: 13px 32px; font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; }
 
     /* ===== FORM SCREEN ===== */
@@ -96,49 +101,39 @@
     .card { background: #fff; border-radius: var(--radius); padding: 16px; }
     .card-label { font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
 
-    /* pill buttons */
-    .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
-    .pill {
-      flex: 1; min-width: 60px;
-      padding: 10px 6px; border-radius: 50px;
+    /* session pills — 3 ปุ่มหลัก */
+    .session-group { display: flex; flex-direction: column; gap: 10px; }
+    .session-pill {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
       border: 2px solid var(--gray-200);
       background: var(--gray-50);
-      font-size: 14px; font-weight: 600; font-family: inherit;
-      color: var(--gray-600); cursor: pointer; text-align: center;
+      font-size: 15px; font-weight: 600; font-family: inherit;
+      color: var(--gray-700); cursor: pointer; text-align: left;
+      display: flex; align-items: center; gap: 12px;
       transition: all .15s;
     }
-    .pill:active { transform: scale(.96); }
-    .pill.selected {
+    .session-pill:active { transform: scale(.98); }
+    .session-pill.selected {
       border-color: var(--green);
       background: var(--green-light);
       color: var(--green-dark);
     }
-
-    /* session pills (เช้า/บ่าย) */
-    .session-group { display: none; margin-top: 12px; gap: 8px; }
-    .session-group.show { display: flex; }
-    .session-pill {
-      flex: 1; padding: 10px 6px; border-radius: 50px;
-      border: 2px solid var(--gray-200); background: var(--gray-50);
-      font-size: 14px; font-weight: 600; font-family: inherit;
-      color: var(--gray-600); cursor: pointer; text-align: center;
-      transition: all .15s;
+    .session-pill .pill-icon { font-size: 22px; flex-shrink: 0; }
+    .session-pill .pill-info { flex: 1; }
+    .session-pill .pill-title { font-size: 15px; font-weight: 700; }
+    .session-pill .pill-sub { font-size: 12px; font-weight: 400; color: var(--gray-500); margin-top: 2px; }
+    .session-pill.selected .pill-sub { color: var(--green-dark); opacity: .75; }
+    .session-pill .pill-badge {
+      font-size: 12px; font-weight: 700;
+      background: var(--gray-200); color: var(--gray-600);
+      border-radius: 20px; padding: 3px 10px;
     }
-    .session-pill:active { transform: scale(.96); }
-    .session-pill.selected { border-color: #F59E0B; background: #FEF3C7; color: #92400E; }
-    .session-time { font-size: 11px; font-weight: 400; display: block; margin-top: 2px; opacity: .75; }
-
-    /* leave type */
-    .type-group { display: flex; flex-wrap: wrap; gap: 8px; }
-    .type-pill {
-      padding: 8px 14px; border-radius: 50px;
-      border: 2px solid var(--gray-200); background: var(--gray-50);
-      font-size: 13px; font-weight: 600; font-family: inherit;
-      color: var(--gray-600); cursor: pointer;
-      transition: all .15s;
+    .session-pill.selected .pill-badge {
+      background: var(--green);
+      color: #fff;
     }
-    .type-pill:active { transform: scale(.96); }
-    .type-pill.selected { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
 
     /* date input */
     .date-input {
@@ -148,9 +143,6 @@
       outline: none; appearance: none;
     }
     .date-input:focus { border-color: var(--green); }
-    .end-date-row { margin-top: 10px; display: none; }
-    .end-date-row.show { display: block; }
-    .end-date-label { font-size: 12px; color: var(--gray-500); margin-bottom: 6px; }
 
     /* summary badge */
     .summary-badge {
@@ -248,55 +240,50 @@
   <!-- Body -->
   <div class="form-body">
 
-    <!-- STEP 1: จำนวนวัน -->
+    <!-- STEP 1: เลือกช่วงการลา -->
     <div class="card">
-      <div class="card-label">① จำนวนวันลา</div>
-      <div class="pill-group" id="daysGroup">
-        <button class="pill" onclick="selectDays(this, 0.5)">ครึ่งวัน</button>
-        <button class="pill" onclick="selectDays(this, 1)">1 วัน</button>
-        <button class="pill" onclick="selectDays(this, 2)">2 วัน</button>
-        <button class="pill" onclick="selectDays(this, 3)">3 วัน</button>
-      </div>
-      <!-- เช้า / บ่าย (แสดงเมื่อเลือกครึ่งวัน) -->
-      <div class="session-group" id="sessionGroup">
-        <button class="session-pill" onclick="selectSession(this, 'เช้า', '08:30', '12:30')">
-          🌅 เช้า <span class="session-time">08:30–12:30</span>
+      <div class="card-label">① เลือกช่วงการลา</div>
+      <div class="session-group">
+        <button class="session-pill" id="pill-morning" onclick="selectSession(this,'เช้า',0.5)">
+          <span class="pill-icon">🌅</span>
+          <span class="pill-info">
+            <div class="pill-title">ครึ่งเช้า</div>
+            <div class="pill-sub">08:30 – 12:30 น.</div>
+          </span>
+          <span class="pill-badge">0.5 วัน</span>
         </button>
-        <button class="session-pill" onclick="selectSession(this, 'บ่าย', '13:30', '17:30')">
-          🌇 บ่าย <span class="session-time">13:30–17:30</span>
+        <button class="session-pill" id="pill-afternoon" onclick="selectSession(this,'บ่าย',0.5)">
+          <span class="pill-icon">🌇</span>
+          <span class="pill-info">
+            <div class="pill-title">ครึ่งบ่าย</div>
+            <div class="pill-sub">13:30 – 17:30 น.</div>
+          </span>
+          <span class="pill-badge">0.5 วัน</span>
+        </button>
+        <button class="session-pill" id="pill-fullday" onclick="selectSession(this,'เต็มวัน',1)">
+          <span class="pill-icon">📅</span>
+          <span class="pill-info">
+            <div class="pill-title">เต็มวัน</div>
+            <div class="pill-sub">08:30 – 17:30 น.</div>
+          </span>
+          <span class="pill-badge">1 วัน</span>
         </button>
       </div>
     </div>
 
-    <!-- STEP 2: ประเภทการลา -->
+    <!-- STEP 2: วันที่ลา -->
     <div class="card">
-      <div class="card-label">② ประเภทการลา</div>
-      <div class="type-group" id="typeGroup">
-        <button class="type-pill selected" onclick="selectType(this)">ลาป่วย</button>
-        <button class="type-pill" onclick="selectType(this)">ลากิจ</button>
-        <button class="type-pill" onclick="selectType(this)">ลาพักร้อน</button>
-        <button class="type-pill" onclick="selectType(this)">ลาคลอด</button>
-        <button class="type-pill" onclick="selectType(this)">ลาอื่นๆ</button>
-      </div>
-    </div>
-
-    <!-- STEP 3: วันที่ -->
-    <div class="card">
-      <div class="card-label">③ วันที่ลา</div>
-      <input type="date" class="date-input" id="lf_startDate" onchange="onStartDateChange()" />
-      <div class="end-date-row" id="endDateRow">
-        <div class="end-date-label">วันสิ้นสุด (คำนวณอัตโนมัติ)</div>
-        <input type="date" class="date-input" id="lf_endDate" readonly />
-      </div>
+      <div class="card-label">② วันที่ลา</div>
+      <input type="date" class="date-input" id="lf_date" onchange="updateSummary()" />
       <div class="summary-badge" id="summaryBadge">
         <i class="fa-solid fa-calendar-check"></i>
         <span id="summaryText">—</span>
       </div>
     </div>
 
-    <!-- STEP 4: เหตุผล (optional) -->
+    <!-- STEP 3: เหตุผล (optional) -->
     <div class="card">
-      <div class="card-label">④ เหตุผล <span style="font-weight:400;text-transform:none;letter-spacing:0">(ไม่บังคับ)</span></div>
+      <div class="card-label">③ เหตุผล <span style="font-weight:400;text-transform:none;letter-spacing:0">(ไม่บังคับ)</span></div>
       <textarea id="lf_reason" rows="3" placeholder="ระบุเหตุผลเพิ่มเติม..."></textarea>
     </div>
 
@@ -317,37 +304,45 @@
 // ============================================================
 // CONFIG
 // ============================================================
-var LIFF_ID = '2010076484-cidRdmeV';
-var API_URL = 'https://script.google.com/macros/s/AKfycbx5H77PCh6ehp1S2oTqVKiHCQh2-sfT-GPOvFTs82crSQ24qexfNutycuiPawCp7u5r/exec';
+var LIFF_ID  = '2010076484-cidRdmeV';
+var API_URL  = 'https://script.google.com/macros/s/AKfycbx5H77PCh6ehp1S2oTqVKiHCQh2-sfT-GPOvFTs82crSQ24qexfNutycuiPawCp7u5r/exec';
 
 // ============================================================
 // STATE
 // ============================================================
 var _lineUserId  = '';
 var _currentUser = null;
-var _days        = null;   // null = ยังไม่เลือก, 0.5 / 1 / 2 / 3
-var _session     = '';     // 'เช้า' หรือ 'บ่าย'
-var _startTime   = '';
-var _endTime     = '';
-var _leaveType   = 'ลาป่วย';
+var _session     = '';    // 'เช้า' | 'บ่าย' | 'เต็มวัน'
+var _days        = null;  // 0.5 | 1
 
 // ============================================================
 // STARTUP
 // ============================================================
 window.addEventListener('DOMContentLoaded', async function() {
+  // set default date = today
   var today = new Date().toISOString().split('T')[0];
-  document.getElementById('lf_startDate').value = today;
-  document.getElementById('lf_endDate').value   = today;
+  document.getElementById('lf_date').value = today;
 
   try {
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) {
-      liff.login({ redirectUri: location.href });
+
+    // ถ้าเปิดในแอป LINE และ login แล้ว → ดึงโปรไฟล์เลย
+    if (liff.isInClient() && liff.isLoggedIn()) {
+      var profile = await liff.getProfile();
+      _lineUserId = profile.userId;
+      await findUserByLineId(_lineUserId);
       return;
     }
-    var profile = await liff.getProfile();
-    _lineUserId = profile.userId;
-    await findUserByLineId(_lineUserId);
+
+    // ถ้าเปิดในแอป LINE แต่ยังไม่ login → login ได้
+    if (liff.isInClient() && !liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+
+    // ถ้าเปิดนอก LINE (browser) → แสดง error
+    showScreen('screenLiffError');
+
   } catch(e) {
     console.warn('LIFF init error:', e.message);
     var errEl = document.getElementById('liffErrorDetail');
@@ -388,73 +383,14 @@ async function findUserByLineId(lineId) {
 }
 
 // ============================================================
-// SELECT DAYS (pill)
+// SELECT SESSION
 // ============================================================
-function selectDays(btn, days) {
-  _days = days;
-  // reset session ถ้าเปลี่ยนจากครึ่งวัน
-  if (days !== 0.5) {
-    _session = ''; _startTime = ''; _endTime = '';
-  }
-  // highlight pill
-  document.querySelectorAll('#daysGroup .pill').forEach(function(p) { p.classList.remove('selected'); });
-  btn.classList.add('selected');
-
-  // แสดง/ซ่อน session group
-  var sesGrp = document.getElementById('sessionGroup');
-  if (days === 0.5) {
-    sesGrp.classList.add('show');
-  } else {
-    sesGrp.classList.remove('show');
-    document.querySelectorAll('.session-pill').forEach(function(p) { p.classList.remove('selected'); });
-  }
-
-  updateEndDate();
-  updateSummary();
-}
-
-// ============================================================
-// SELECT SESSION (เช้า/บ่าย)
-// ============================================================
-function selectSession(btn, session, startTime, endTime) {
-  _session   = session;
-  _startTime = startTime;
-  _endTime   = endTime;
+function selectSession(btn, session, days) {
+  _session = session;
+  _days    = days;
   document.querySelectorAll('.session-pill').forEach(function(p) { p.classList.remove('selected'); });
   btn.classList.add('selected');
   updateSummary();
-}
-
-// ============================================================
-// SELECT TYPE
-// ============================================================
-function selectType(btn) {
-  _leaveType = btn.textContent.trim();
-  document.querySelectorAll('#typeGroup .type-pill').forEach(function(p) { p.classList.remove('selected'); });
-  btn.classList.add('selected');
-}
-
-// ============================================================
-// DATE CHANGE
-// ============================================================
-function onStartDateChange() {
-  updateEndDate();
-  updateSummary();
-}
-
-function updateEndDate() {
-  if (_days === null || _days <= 1) {
-    document.getElementById('endDateRow').classList.remove('show');
-    // endDate = startDate
-    document.getElementById('lf_endDate').value = document.getElementById('lf_startDate').value;
-    return;
-  }
-  var start = document.getElementById('lf_startDate').value;
-  if (!start) return;
-  var endDate = new Date(start);
-  endDate.setDate(endDate.getDate() + _days - 1);
-  document.getElementById('lf_endDate').value = endDate.toISOString().split('T')[0];
-  document.getElementById('endDateRow').classList.add('show');
 }
 
 // ============================================================
@@ -463,22 +399,13 @@ function updateEndDate() {
 function updateSummary() {
   var badge = document.getElementById('summaryBadge');
   var text  = document.getElementById('summaryText');
-  if (_days === null) { badge.classList.remove('show'); return; }
+  if (!_session) { badge.classList.remove('show'); return; }
 
-  var start = document.getElementById('lf_startDate').value;
-  if (!start) { badge.classList.remove('show'); return; }
+  var date = document.getElementById('lf_date').value;
+  if (!date) { badge.classList.remove('show'); return; }
 
-  var str = '';
-  if (_days === 0.5) {
-    if (!_session) { badge.classList.remove('show'); return; }
-    str = start + '  •  ครึ่งวัน' + _session + '  (' + _startTime + '–' + _endTime + ' น.)';
-  } else if (_days === 1) {
-    str = start + '  •  1 วัน';
-  } else {
-    var end = document.getElementById('lf_endDate').value;
-    str = start + ' – ' + end + '  •  ' + _days + ' วัน';
-  }
-  text.textContent = str;
+  var sessionLabel = { 'เช้า':'ครึ่งเช้า (08:30–12:30 น.)', 'บ่าย':'ครึ่งบ่าย (13:30–17:30 น.)', 'เต็มวัน':'เต็มวัน (08:30–17:30 น.)' }[_session] || _session;
+  text.textContent = date + '  •  ' + sessionLabel + '  •  ' + _days + ' วัน';
   badge.classList.add('show');
 }
 
@@ -486,14 +413,12 @@ function updateSummary() {
 // SUBMIT
 // ============================================================
 async function submitLeave() {
-  if (_days === null) { showToast('กรุณาเลือกจำนวนวันลา', 'error'); return; }
-  if (_days === 0.5 && !_session) { showToast('กรุณาเลือกช่วงเวลา เช้า หรือ บ่าย', 'error'); return; }
+  if (!_session) { showToast('กรุณาเลือกช่วงการลา', 'error'); return; }
 
-  var startDate = document.getElementById('lf_startDate').value;
-  var endDate   = document.getElementById('lf_endDate').value;
-  var reason    = document.getElementById('lf_reason').value.trim();
+  var date   = document.getElementById('lf_date').value;
+  var reason = document.getElementById('lf_reason').value.trim();
 
-  if (!startDate) { showToast('กรุณาเลือกวันที่ลา', 'error'); return; }
+  if (!date) { showToast('กรุณาเลือกวันที่ลา', 'error'); return; }
 
   var btn = document.getElementById('submitBtn');
   btn.disabled = true;
@@ -501,21 +426,18 @@ async function submitLeave() {
 
   try {
     var res = await apiCall({
-      action:    'addLeave',
-      UserID:    _currentUser.UserID,
-      Name:      _currentUser.Name,
-      LeaveType: _leaveType,
-      StartDate: startDate,
-      EndDate:   endDate,
-      Days:      _days,
-      StartTime: _startTime,
-      EndTime:   _endTime,
-      Reason:    reason,
+      action:  'addLeave',
+      UserID:  _currentUser.UserID,
+      Name:    _currentUser.Name,
+      Date:    date,
+      Days:    _days,
+      Session: _session,
+      Reason:  reason
     });
 
     if (res.success) {
-      var timeStr = (_startTime && _endTime) ? '\n' + _startTime + '–' + _endTime + ' น.' : '';
-      var detail  = _leaveType + '\n' + startDate + (endDate !== startDate ? ' – ' + endDate : '') + timeStr + '\n(' + _days + ' วัน)';
+      var sessionLabel = { 'เช้า':'ครึ่งเช้า', 'บ่าย':'ครึ่งบ่าย', 'เต็มวัน':'เต็มวัน' }[_session] || _session;
+      var detail = 'วันที่: ' + date + '\nช่วง: ' + sessionLabel + '\nจำนวน: ' + _days + ' วัน' + (reason ? '\nเหตุผล: ' + reason : '');
       document.getElementById('successDetail').textContent = detail;
       showScreen('screenSuccess');
     } else {
@@ -534,20 +456,12 @@ async function submitLeave() {
 // RESET
 // ============================================================
 function resetForm() {
-  _days = null; _session = ''; _startTime = ''; _endTime = '';
-  _leaveType = 'ลาป่วย';
+  _session = ''; _days = null;
   var today = new Date().toISOString().split('T')[0];
-  document.getElementById('lf_startDate').value = today;
-  document.getElementById('lf_endDate').value   = today;
-  document.getElementById('lf_reason').value    = '';
-  document.querySelectorAll('.pill').forEach(function(p) { p.classList.remove('selected'); });
+  document.getElementById('lf_date').value   = today;
+  document.getElementById('lf_reason').value = '';
   document.querySelectorAll('.session-pill').forEach(function(p) { p.classList.remove('selected'); });
-  document.getElementById('sessionGroup').classList.remove('show');
-  document.getElementById('endDateRow').classList.remove('show');
   document.getElementById('summaryBadge').classList.remove('show');
-  document.querySelectorAll('#typeGroup .type-pill').forEach(function(p, i) {
-    p.classList.toggle('selected', i === 0);
-  });
   var btn = document.getElementById('submitBtn');
   btn.disabled = false;
   btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ส่งใบลา';
@@ -590,4 +504,3 @@ function showToast(msg, type) {
 </script>
 </body>
 </html>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
