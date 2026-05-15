@@ -41,7 +41,7 @@
       --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
       --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
     }
-    html, body { height: 100%; font-family: 'Sarabun', sans-serif; font-size: 15px; color: var(--gray-800); background: var(--gray-100); }
+    html, body { height: 100%; font-family: 'Sarabun', sans-serif; font-size: 15px; color: var(--gray-800); background: var(--gray-100); display:flex; flex-direction:column; }
 
     /* ===== LAYOUT ===== */
     .app { display: flex; height: 100vh; overflow: hidden; }
@@ -498,25 +498,18 @@
   </style>
   <style>
     /* ===== settings.html overrides ===== */
-    body { display:flex; flex-direction:column; min-height:100vh; background:var(--gray-50); }
-    .settings-topbar {
-      height:var(--header-height); background:var(--sidebar-bg);
-      display:flex; align-items:center; padding:0 24px; gap:16px;
-      box-shadow:0 2px 8px rgba(0,0,0,.18); position:sticky; top:0; z-index:100;
-    }
-    .settings-topbar .logo { color:#fff; font-size:18px; font-weight:700; display:flex; align-items:center; gap:10px; }
-    .settings-topbar .back-btn {
-      color:rgba(255,255,255,.8); font-size:13px; cursor:pointer;
-      display:flex; align-items:center; gap:6px; margin-left:auto;
-      background:rgba(255,255,255,.12); border:none; border-radius:8px;
-      padding:7px 14px; transition:background .2s; font-family:inherit;
-    }
-    .settings-topbar .back-btn:hover { background:rgba(255,255,255,.22); color:#fff; }
-    .settings-layout { display:flex; flex:1; min-height:0; }
+    html, body { height:100%; overflow:hidden; background:var(--gray-50); }
+    body { display:flex; }
+    .settings-layout { display:flex; width:100%; height:100vh; overflow:hidden; }
     .settings-sidebar {
       width:220px; min-width:220px; background:var(--sidebar-bg);
-      padding:16px 0; display:flex; flex-direction:column; gap:2px;
+      display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0;
     }
+    .settings-sidebar .sidebar-logo {
+      padding:20px 20px 16px; border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .settings-sidebar .sidebar-logo h1 { font-size:16px; font-weight:700; color:#fff; line-height:1.3; }
+    .settings-sidebar .sidebar-logo span { font-size:11px; color:var(--gray-400); }
     .settings-sidebar .sec-title {
       font-size:10px; font-weight:700; color:rgba(255,255,255,.4);
       letter-spacing:1px; padding:12px 18px 4px; text-transform:uppercase;
@@ -529,6 +522,14 @@
     .settings-sidebar .nav-item:hover { background:rgba(255,255,255,.06); color:#fff; }
     .settings-sidebar .nav-item.active { background:var(--primary); color:#fff; }
     .settings-sidebar .nav-item i { width:18px; text-align:center; font-size:14px; }
+    .sidebar-spacer { flex:1; }
+    .back-btn {
+      margin:12px; padding:10px 14px; border-radius:var(--radius-sm);
+      background:rgba(255,255,255,.08); border:none; color:rgba(255,255,255,.75);
+      font-size:13px; font-family:inherit; cursor:pointer;
+      display:flex; align-items:center; gap:8px; transition:background .2s;
+    }
+    .back-btn:hover { background:rgba(255,255,255,.16); color:#fff; }
     .settings-content { flex:1; overflow-y:auto; padding:24px; }
     .page { display:none !important; }
     .page.active { display:block !important; }
@@ -536,17 +537,13 @@
 </head>
 <body>
 
-  <!-- TOPBAR -->
-  <div class="settings-topbar">
-    <div class="logo"><i class="fa-solid fa-gear"></i> ตั้งค่าระบบ</div>
-    <button class="back-btn" onclick="goBack()">
-      <i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
-    </button>
-  </div>
-
   <div class="settings-layout">
     <!-- SIDEBAR -->
     <aside class="settings-sidebar">
+      <div class="sidebar-logo">
+        <h1><i class="fa-solid fa-gear" style="margin-right:8px;"></i>ตั้งค่าระบบ</h1>
+        <span>System Settings</span>
+      </div>
       <div class="sec-title">ระบบ</div>
       <div class="nav-item active" data-page="settings" onclick="navigateSetting('settings')">
         <i class="fa-solid fa-plug"></i> เชื่อมต่อ API
@@ -564,7 +561,10 @@
       <div class="nav-item" data-page="job-settings" onclick="navigateSetting('job-settings')">
         <i class="fa-solid fa-briefcase"></i> รายการ JOB
       </div>
-
+      <div class="sidebar-spacer"></div>
+      <button class="back-btn" onclick="goBack()">
+        <i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก
+      </button>
     </aside>
 
     <!-- CONTENT -->
