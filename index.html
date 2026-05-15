@@ -623,15 +623,22 @@ window.addEventListener('DOMContentLoaded', async function() {
   calcDays();
 
   try {
-    await liff.init({ liffId: LIFF_ID });
+    // timeout 15 วินาที ถ้า liff.init() ค้างนานเกินไป
+    var initTimeout = new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error('LIFF init timeout')); }, 15000);
+    });
+    await Promise.race([liff.init({ liffId: LIFF_ID }), initTimeout]);
 
+    // ถ้าไม่ได้อยู่ใน LINE app ให้ login แทนการแสดง error
     if (!liff.isInClient()) {
-      showScreen('screenLiffError');
-      return;
+      if (!liff.isLoggedIn()) {
+        liff.login({ redirectUri: window.location.href });
+        return;
+      }
     }
 
     if (!liff.isLoggedIn()) {
-      liff.login();
+      liff.login({ redirectUri: window.location.href });
       return;
     }
 
@@ -641,6 +648,15 @@ window.addEventListener('DOMContentLoaded', async function() {
 
   } catch(e) {
     console.warn('LIFF init error:', e.message);
+    // ถ้า timeout ให้ reload อัตโนมัติ 1 ครั้ง
+    if (e.message === 'LIFF init timeout') {
+      var retried = sessionStorage.getItem('liff_retried');
+      if (!retried) {
+        sessionStorage.setItem('liff_retried', '1');
+        window.location.reload();
+        return;
+      }
+    }
     showScreen('screenLiffError');
   }
 });
@@ -815,28 +831,4 @@ function showScreen(id) {
     if (s === 'screenForm') {
       el.style.display = (s === id) ? 'flex' : 'none';
     } else {
-      el.style.display = (s === id) ? 'flex' : 'none';
-      if (s === id) el.classList.add('active');
-      else el.classList.remove('active');
-    }
-  });
-  // screenForm ไม่ใช่ class active — ใช้ display flex โดยตรง
-  if (id === 'screenForm') {
-    document.getElementById('screenForm').style.display = 'flex';
-  }
-}
-
-async function apiCall(params) {
-  if (!API_URL) throw new Error('ยังไม่ได้ตั้งค่า API URL');
-  var res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(params),
-    redirect: 'follow'
-  });
-  return res.json();
-}
-
-function showToast(msg, type) {
-  var icons = { success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation' };
-  var container = document.getElementById('toastContainer');
+      el.style.display = (s === id) ? 'flex'
