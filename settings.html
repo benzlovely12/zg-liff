@@ -971,6 +971,10 @@ function getCarModels(brand, type) {
 // ============================================================
 
 // ============================================================
+// stub — ฟังก์ชันเหล่านี้ใช้ใน app.html เท่านั้น settings.html ไม่ต้องการ
+function syncStatusFromDD() {}
+function applyStatusConfig(cfg) {}
+
 // BLOCK B: API CONFIG + API CALL
 // ============================================================
 // BLOCK B: SYSTEM STARTUP — INIT + API CONFIG
@@ -1186,8 +1190,8 @@ async function loadDDSettings() {
       });
       // carBrand และ carModels
       if (res.data.carBrand)  DD_DATA.carBrand  = res.data.carBrand;
-      if (res.data.jobStatus) { DD_DATA.jobStatus = res.data.jobStatus; syncStatusFromDD(); }
-      if (res.data.statusConfig) { applyStatusConfig(res.data.statusConfig); }
+      if (res.data.jobStatus) { DD_DATA.jobStatus = res.data.jobStatus; }
+      if (res.data.statusConfig) { DD_DATA.statusConfig = res.data.statusConfig; } // applyStatusConfig ใช้ใน app.html เท่านั้น
       if (res.data.statusArchive) DD_DATA.statusArchive = res.data.statusArchive;
       if (res.data.carModels) DD_DATA.carModels = res.data.carModels;
       // sync DD_DAMAGE_LEVEL จาก DD_DATA.damageLevel (โหลดโดย simpleKeys แล้ว)
@@ -1292,6 +1296,7 @@ async function loadUsersAndShowScreen() {
 
   if (!API_URL) {
     if (list) list.innerHTML = '<div style="color:#ef4444;font-size:14px;text-align:center;padding:16px;">ยังไม่ได้เชื่อมต่อ API</div>';
+    if (!list) return; // settings.html ไม่มี userCardList — ออกเลย
     return;
   }
   try {
@@ -1324,6 +1329,7 @@ async function loadUsersAndShowScreen() {
 
 function renderUserSelectScreen() {
   const list = document.getElementById('userCardList');
+  if (!list) return; // settings.html ไม่มี element นี้
   const activeUsers = ALL_USERS.filter(u => u.Status !== 'inactive');
   if (activeUsers.length === 0) {
     list.innerHTML =
