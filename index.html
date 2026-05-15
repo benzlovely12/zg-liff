@@ -627,8 +627,13 @@ window.addEventListener('DOMContentLoaded', async function() {
     await liff.init({ liffId: LIFF_ID });
 
     if (!liff.isLoggedIn()) {
-      // Fix: เพิ่ม redirectUri ป้องกัน login loop
-      liff.login({ redirectUri: location.href });
+      if (!liff.isInClient()) {
+        var errEl = document.getElementById('liffErrorDetail');
+        if (errEl) { errEl.textContent = 'กรุณาเปิดลิงก์นี้ผ่านแอป LINE เท่านั้น'; errEl.style.display = 'block'; }
+        showScreen('screenLiffError');
+        return;
+      }
+      liff.login();
       return;
     }
 
@@ -836,4 +841,12 @@ function showToast(msg, type) {
   var icons = { success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation' };
   var container = document.getElementById('toastContainer');
   var toast = document.createElement('div');
-  toast.className = 'toast ' + (type || ''
+  toast.className = 'toast ' + (type || 'info');
+  toast.innerHTML = '<i class="fa-solid ' + (icons[type] || 'fa-circle-info') + '"></i> ' + msg;
+  container.appendChild(toast);
+  setTimeout(function() { toast.classList.add('hide'); }, 3000);
+  setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 3400);
+}
+</script>
+</body>
+</html>
