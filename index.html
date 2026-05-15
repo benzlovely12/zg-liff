@@ -588,11 +588,12 @@
   <div class="error-icon">
     <i class="fa-solid fa-triangle-exclamation"></i>
   </div>
-  <div class="error-title">เปิดผ่าน LINE เท่านั้น</div>
+  <div class="error-title">เกิดข้อผิดพลาด LIFF</div>
   <div class="error-sub">
     กรุณาเปิดลิงก์นี้ผ่าน<br>
     แอป LINE บนมือถือของคุณ
   </div>
+  <div id="liffErrorDetail" style="display:none;margin-top:12px;padding:10px 14px;background:#fff3cd;border-radius:8px;font-size:12px;color:#856404;word-break:break-all;max-width:300px;text-align:left;"></div>
 </div>
 
 <!-- Toast -->
@@ -626,7 +627,8 @@ window.addEventListener('DOMContentLoaded', async function() {
     await liff.init({ liffId: LIFF_ID });
 
     if (!liff.isLoggedIn()) {
-      liff.login();
+      // Fix: เพิ่ม redirectUri ป้องกัน login loop
+      liff.login({ redirectUri: location.href });
       return;
     }
 
@@ -636,6 +638,9 @@ window.addEventListener('DOMContentLoaded', async function() {
 
   } catch(e) {
     console.warn('LIFF init error:', e.message);
+    // Fix: แสดง error จริงบนหน้า เพื่อช่วย debug
+    var errEl = document.getElementById('liffErrorDetail');
+    if (errEl) { errEl.textContent = e.message || String(e); errEl.style.display = 'block'; }
     showScreen('screenLiffError');
   }
 });
@@ -803,22 +808,17 @@ function resetForm() {
 // ============================================================
 // HELPERS
 // ============================================================
+// Fix: showScreen() ทำงานสม่ำเสมอทุก screen รวม screenForm
 function showScreen(id) {
   var all = ['screenLoading','screenNotFound','screenLiffError','screenSuccess','screenForm'];
   all.forEach(function(s) {
     var el = document.getElementById(s);
-    if (s === 'screenForm') {
-      el.style.display = (s === id) ? 'flex' : 'none';
-    } else {
-      el.style.display = (s === id) ? 'flex' : 'none';
-      if (s === id) el.classList.add('active');
-      else el.classList.remove('active');
-    }
+    if (!el) return;
+    var show = (s === id);
+    el.style.display = show ? 'flex' : 'none';
+    if (show) el.classList.add('active');
+    else el.classList.remove('active');
   });
-  // screenForm ไม่ใช่ class active — ใช้ display flex โดยตรง
-  if (id === 'screenForm') {
-    document.getElementById('screenForm').style.display = 'flex';
-  }
 }
 
 async function apiCall(params) {
