@@ -74,7 +74,7 @@
     .form-group { display:flex; flex-direction:column; gap:5px; margin-bottom:16px; }
     .form-group label { font-size:13px; font-weight:600; color:var(--gray-700); }
     .form-group label .req { color:var(--danger); margin-left:2px; }
-    .form-control { padding:9px 12px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:14px; font-family:inherit; color:var(--gray-800); outline:none; transition:border-color .15s; width:100%; }
+    .form-control { padding:9px 12px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:14px; font-family:inherit; color:var(--gray-800); outline:none; transition:border-color .15s; width:100%; background:#fff; }
     .form-control:focus { border-color:var(--primary); }
     select.form-control { cursor:pointer; }
     .btn { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border-radius:var(--radius-sm); font-size:14px; font-weight:600; font-family:'Sarabun',sans-serif; cursor:pointer; border:none; transition:all .15s; white-space:nowrap; }
@@ -226,8 +226,14 @@
                   <th>ชื่อผู้ใช้งาน</th>
                   <th>บทบาท</th>
                   <th>สถานะ</th>
+                  <th>ประเภทจ่าย</th>
+                  <th>ค่าแรง/วัน</th>
+                  <th>Fix/สัปดาห์</th>
+                  <th>พิเศษ/วัน</th>
+                  <th>หัก/วันหยุด</th>
+                  <th>ส.ป.ส./เดือน</th>
                   <th><i class="fa-brands fa-line" style="color:#06C755;"></i> LINE</th>
-                  <th>สร้างเมื่อ</th>
+                  <th>จัดการ</th>
                   <th style="text-align:center;">จัดการ</th>
                 </tr>
               </thead>
@@ -1080,7 +1086,7 @@ function switchUser() {
 // ============================================================
 async function loadUsersList() {
   const tbody = document.getElementById('usersTableBody');
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">กำลังโหลด...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:24px;color:var(--gray-400);">กำลังโหลด...</td></tr>';
   try {
     const res = await apiCall({ action: 'getUsers' });
     if (res.success && Array.isArray(res.data)) {
@@ -1097,11 +1103,17 @@ async function loadUsersList() {
 function renderUsersTable(users) {
   const tbody = document.getElementById('usersTableBody');
   if (!users || users.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--gray-400);">ยังไม่มีผู้ใช้งาน</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:32px;color:var(--gray-400);">ยังไม่มีผู้ใช้งาน</td></tr>';
     return;
   }
   const roleLabel = { admin: 'Admin', user: 'Office', accountant: 'ฝ่ายบัญชี', executive: 'ผู้บริหาร', labor: 'แรงงาน' };
-  tbody.innerHTML = users.map((u, i) => `
+  const payLabel  = { weekly: 'รายสัปดาห์', monthly: 'รายเดือน', none: '' };
+  const payColor  = { weekly: 'background:#dbeafe;color:#1d4ed8;', monthly: 'background:#ede9fe;color:#6d28d9;', none: '' };
+  const dash = '<span style="opacity:.3;font-size:12px;">—</span>';
+  tbody.innerHTML = users.map((u, i) => {
+    const pt = u.PayType || 'none';
+    const isLabor = pt !== 'none';
+    return `
     <tr>
       <td style="color:var(--gray-400);">${i + 1}</td>
       <td style="font-weight:600;">
@@ -1114,18 +1126,21 @@ function renderUsersTable(users) {
           ${u.Status === 'active' ? 'ใช้งาน' : 'ระงับ'}
         </span>
       </td>
+      <td>${isLabor ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;${payColor[pt]}">${payLabel[pt]}</span>` : dash}</td>
+      <td style="font-size:13px;text-align:right;">${pt==='weekly' && u.DailyRate ? Number(u.DailyRate).toLocaleString() : dash}</td>
+      <td style="font-size:13px;text-align:right;">${pt==='monthly' && u.FixWeek ? Number(u.FixWeek).toLocaleString() : dash}</td>
+      <td style="font-size:13px;text-align:right;">${isLabor && u.SpecialRate ? Number(u.SpecialRate).toLocaleString() : dash}</td>
+      <td style="font-size:13px;text-align:right;">${pt==='monthly' && u.DeductPerDay ? Number(u.DeductPerDay).toLocaleString() : dash}</td>
+      <td style="font-size:13px;text-align:right;">${isLabor && u.SSO ? Number(u.SSO).toLocaleString() : dash}</td>
       <td style="font-size:12px;color:${u.LineUserID?'#06C755':'var(--gray-400)'};">
-        ${u.LineUserID
-          ? '<i class="fa-brands fa-line"></i> เชื่อมแล้ว'
-          : '<span style="opacity:.5;">-</span>'}
+        ${u.LineUserID ? '<i class="fa-brands fa-line"></i> เชื่อมแล้ว' : '<span style="opacity:.5;">-</span>'}
       </td>
-      <td style="color:var(--gray-500);font-size:13px;">${u.CreatedAt || '-'}</td>
-      <td style="text-align:center;">
+      <td style="text-align:center;white-space:nowrap;">
         <button class="btn btn-sm btn-outline" onclick="openUserModal('${u.UserID}')" style="margin-right:4px;"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-sm" onclick="deleteUser('${u.UserID}','${u.Name}')" style="background:var(--danger-light);color:var(--danger);border:none;"><i class="fa-solid fa-trash"></i></button>
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 
 function togglePayFields() {
