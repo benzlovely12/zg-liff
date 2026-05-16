@@ -443,6 +443,55 @@
         <input type="text" class="form-control" id="um_lineUserId" placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
         <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">ถ้าพนักงานเปลี่ยน LINE แค่อัปเดตตรงนี้</div>
       </div>
+
+      <!-- ===== ข้อมูลค่าแรง ===== -->
+      <div style="margin:16px 0 8px;padding-top:12px;border-top:1px solid var(--gray-200);">
+        <div style="font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:10px;">
+          <i class="fa-solid fa-coins" style="color:var(--warning);margin-right:6px;"></i>ข้อมูลค่าแรง
+        </div>
+        <div class="form-group">
+          <label>ประเภทการจ่าย</label>
+          <select class="form-control" id="um_payType" onchange="togglePayFields()">
+            <option value="none">ไม่ระบุ (admin/office)</option>
+            <option value="weekly">รายสัปดาห์ (จ่ายครบทุกสัปดาห์)</option>
+            <option value="monthly">รายเดือน (มีเบิกย่อยรายสัปดาห์)</option>
+          </select>
+        </div>
+
+        <!-- weekly fields -->
+        <div id="um_weeklyFields" style="display:none;">
+          <div class="form-group">
+            <label>ค่าแรง/วัน (บาท)</label>
+            <input type="number" class="form-control" id="um_dailyRate" placeholder="เช่น 350" min="0" step="10" />
+          </div>
+        </div>
+
+        <!-- monthly fields -->
+        <div id="um_monthlyFields" style="display:none;">
+          <div class="form-group">
+            <label>ค่าแรง Fix/สัปดาห์ (บาท)</label>
+            <input type="number" class="form-control" id="um_fixWeek" placeholder="เช่น 1500" min="0" step="100" />
+          </div>
+          <div class="form-group">
+            <label>หักต่อวันที่หยุด (บาท)</label>
+            <input type="number" class="form-control" id="um_deductPerDay" placeholder="เช่น 200" min="0" step="50" />
+          </div>
+        </div>
+
+        <!-- shared fields (weekly + monthly) -->
+        <div id="um_sharedPayFields" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>พิเศษ/วัน (บาท)</label>
+              <input type="number" class="form-control" id="um_specialRate" placeholder="เช่น 20" min="0" step="5" />
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label>หัก ส.ป.ส./เดือน (บาท)</label>
+              <input type="number" class="form-control" id="um_sso" placeholder="0 = ไม่หัก" min="0" step="1" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeUserModal()"><i class="fa-solid fa-xmark"></i> ยกเลิก</button>
@@ -1079,23 +1128,44 @@ function renderUsersTable(users) {
   `).join('');
 }
 
+function togglePayFields() {
+  const pt = document.getElementById('um_payType').value;
+  document.getElementById('um_weeklyFields').style.display  = pt === 'weekly'  ? '' : 'none';
+  document.getElementById('um_monthlyFields').style.display = pt === 'monthly' ? '' : 'none';
+  document.getElementById('um_sharedPayFields').style.display = pt === 'none'  ? 'none' : '';
+}
+
 function openUserModal(userId) {
   const modal = document.getElementById('userModal');
   document.getElementById('userModalTitle').textContent = userId ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งาน';
-  document.getElementById('um_userId').value = '';
-  document.getElementById('um_name').value = '';
-  document.getElementById('um_role').value = 'admin';
-  document.getElementById('um_status').value = 'active';
-  document.getElementById('um_lineUserId').value = '';
+  document.getElementById('um_userId').value      = '';
+  document.getElementById('um_name').value        = '';
+  document.getElementById('um_role').value        = 'user';
+  document.getElementById('um_status').value      = 'active';
+  document.getElementById('um_lineUserId').value  = '';
+  document.getElementById('um_payType').value     = 'none';
+  document.getElementById('um_dailyRate').value   = '';
+  document.getElementById('um_fixWeek').value     = '';
+  document.getElementById('um_deductPerDay').value= '';
+  document.getElementById('um_specialRate').value = '';
+  document.getElementById('um_sso').value         = '';
+  togglePayFields();
 
   if (userId) {
     const u = ALL_USERS.find(x => x.UserID === userId);
     if (u) {
-      document.getElementById('um_userId').value = u.UserID;
-      document.getElementById('um_name').value = u.Name || '';
-      document.getElementById('um_role').value = u.Role || 'user';
-      document.getElementById('um_status').value = u.Status || 'active';
-      document.getElementById('um_lineUserId').value = u.LineUserID || '';
+      document.getElementById('um_userId').value      = u.UserID;
+      document.getElementById('um_name').value        = u.Name || '';
+      document.getElementById('um_role').value        = u.Role || 'user';
+      document.getElementById('um_status').value      = u.Status || 'active';
+      document.getElementById('um_lineUserId').value  = u.LineUserID || '';
+      document.getElementById('um_payType').value     = u.PayType || 'none';
+      document.getElementById('um_dailyRate').value   = u.DailyRate || '';
+      document.getElementById('um_fixWeek').value     = u.FixWeek || '';
+      document.getElementById('um_deductPerDay').value= u.DeductPerDay || '';
+      document.getElementById('um_specialRate').value = u.SpecialRate || '';
+      document.getElementById('um_sso').value         = u.SSO || '';
+      togglePayFields();
     }
   }
   modal.classList.remove('hidden');
@@ -1108,17 +1178,26 @@ function closeUserModal() {
 async function saveUser() {
   const name = document.getElementById('um_name').value.trim();
   if (!name) { showToast('กรุณากรอกชื่อผู้ใช้งาน', 'error'); return; }
-  const userId     = document.getElementById('um_userId').value;
-  const role       = document.getElementById('um_role').value;
-  const status     = document.getElementById('um_status').value;
-  const lineUserId = document.getElementById('um_lineUserId').value.trim();
+  const userId      = document.getElementById('um_userId').value;
+  const role        = document.getElementById('um_role').value;
+  const status      = document.getElementById('um_status').value;
+  const lineUserId  = document.getElementById('um_lineUserId').value.trim();
+  const payType     = document.getElementById('um_payType').value;
+  const dailyRate   = parseFloat(document.getElementById('um_dailyRate').value) || 0;
+  const fixWeek     = parseFloat(document.getElementById('um_fixWeek').value) || 0;
+  const specialRate = parseFloat(document.getElementById('um_specialRate').value) || 0;
+  const deductPerDay= parseFloat(document.getElementById('um_deductPerDay').value) || 0;
+  const sso         = parseFloat(document.getElementById('um_sso').value) || 0;
 
+  const payload = { Name: name, Role: role, Status: status, LineUserID: lineUserId,
+                    PayType: payType, DailyRate: dailyRate, FixWeek: fixWeek,
+                    SpecialRate: specialRate, DeductPerDay: deductPerDay, SSO: sso };
   try {
     let res;
     if (userId) {
-      res = await apiCall({ action: 'updateUser', UserID: userId, Name: name, Role: role, Status: status, LineUserID: lineUserId });
+      res = await apiCall({ action: 'updateUser', UserID: userId, ...payload });
     } else {
-      res = await apiCall({ action: 'addUser', Name: name, Role: role, Status: status, LineUserID: lineUserId });
+      res = await apiCall({ action: 'addUser', ...payload });
     }
     if (res.success) {
       showToast(userId ? 'แก้ไขผู้ใช้งานสำเร็จ' : 'เพิ่มผู้ใช้งานสำเร็จ', 'success');
