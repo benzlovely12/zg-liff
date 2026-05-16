@@ -103,6 +103,7 @@
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1500; display:flex; align-items:center; justify-content:center; padding:20px; }
     .modal-overlay.hidden { display:none; }
     .modal-box { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow-lg); width:100%; max-width:480px; display:flex; flex-direction:column; max-height:90vh; }
+    .modal { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow-lg); width:100%; display:flex; flex-direction:column; max-height:90vh; overflow-y:auto; }
     .modal-header { padding:18px 24px; border-bottom:1px solid var(--gray-200); display:flex; align-items:center; gap:12px; flex-shrink:0; }
     .modal-title { font-size:17px; font-weight:700; flex:1; color:var(--gray-800); }
     .modal-body { flex:1; overflow-y:auto; padding:24px; }
@@ -421,9 +422,15 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="um_userId" value="" />
-      <div class="form-group">
-        <label>ชื่อผู้ใช้งาน <span style="color:var(--danger);">*</span></label>
-        <input type="text" class="form-control" id="um_name" placeholder="กรอกชื่อ-นามสกุล" />
+      <div style="display:grid;grid-template-columns:1fr 140px;gap:10px;">
+        <div class="form-group">
+          <label>ชื่อผู้ใช้งาน <span style="color:var(--danger);">*</span></label>
+          <input type="text" class="form-control" id="um_name" placeholder="กรอกชื่อ-นามสกุล" />
+        </div>
+        <div class="form-group">
+          <label>รหัสพนักงาน <span style="font-size:11px;color:var(--gray-400);font-weight:400;">(ภายใน)</span></label>
+          <input type="text" class="form-control" id="um_empCode" placeholder="เช่น EMP001" />
+        </div>
       </div>
       <div class="form-group">
         <label>บทบาท</label>
@@ -1114,11 +1121,16 @@ function renderUsersTable(users) {
     const pt = u.PayType || 'none';
     const isLabor = pt !== 'none';
     return `
-    <tr>
-      <td style="color:var(--gray-400);">${i + 1}</td>
+    <tr draggable="true" data-uid="${u.UserID}" data-idx="${i}"
+        ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dragDrop(event)"
+        style="cursor:grab;">
+      <td style="color:var(--gray-400);user-select:none;">
+        <i class="fa-solid fa-grip-vertical" style="color:var(--gray-300);margin-right:4px;font-size:12px;"></i>${i + 1}
+      </td>
       <td style="font-weight:600;">
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;font-size:12px;font-weight:700;margin-right:8px;">${(u.Name||'?').charAt(0).toUpperCase()}</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;font-size:12px;font-weight:700;margin-right:6px;">${(u.Name||'?').charAt(0).toUpperCase()}</span>
         ${u.Name || '-'}
+        ${u.EmpCode ? `<span style="font-size:11px;color:var(--gray-400);font-weight:400;margin-left:4px;">#${u.EmpCode}</span>` : ''}
       </td>
       <td>${roleLabel[u.Role] || u.Role || '-'}</td>
       <td>
@@ -1141,6 +1153,39 @@ function renderUsersTable(users) {
       </td>
     </tr>
   `}).join('');
+  initDragDrop();
+}
+
+let dragSrcIdx = null;
+function dragStart(e) {
+  dragSrcIdx = parseInt(e.currentTarget.dataset.idx);
+  e.currentTarget.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+}
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('#usersTableBody tr').forEach(r => r.style.borderTop = '');
+  e.currentTarget.style.borderTop = '2px solid var(--primary)';
+}
+function dragDrop(e) {
+  e.preventDefault();
+  const destIdx = parseInt(e.currentTarget.dataset.idx);
+  if (dragSrcIdx === null || dragSrcIdx === destIdx) return;
+  const moved = ALL_USERS.splice(dragSrcIdx, 1)[0];
+  ALL_USERS.splice(destIdx, 0, moved);
+  renderUsersList(ALL_USERS);
+}
+function initDragDrop() {
+  document.querySelectorAll('#usersTableBody tr').forEach(r => {
+    r.addEventListener('dragend', () => {
+      document.querySelectorAll('#usersTableBody tr').forEach(x => {
+        x.style.opacity = '1';
+        x.style.borderTop = '';
+      });
+      dragSrcIdx = null;
+    });
+  });
 }
 
 function togglePayFields() {
@@ -1164,6 +1209,7 @@ function openUserModal(userId) {
   document.getElementById('um_deductPerDay').value= '';
   document.getElementById('um_specialRate').value = '';
   document.getElementById('um_sso').value         = '';
+  document.getElementById('um_empCode').value     = '';
   togglePayFields();
 
   if (userId) {
@@ -1180,6 +1226,7 @@ function openUserModal(userId) {
       document.getElementById('um_deductPerDay').value= u.DeductPerDay || '';
       document.getElementById('um_specialRate').value = u.SpecialRate || '';
       document.getElementById('um_sso').value         = u.SSO || '';
+      document.getElementById('um_empCode').value     = u.EmpCode || '';
       togglePayFields();
     }
   }
@@ -1203,10 +1250,12 @@ async function saveUser() {
   const specialRate = parseFloat(document.getElementById('um_specialRate').value) || 0;
   const deductPerDay= parseFloat(document.getElementById('um_deductPerDay').value) || 0;
   const sso         = parseFloat(document.getElementById('um_sso').value) || 0;
+  const empCode     = document.getElementById('um_empCode').value.trim();
 
   const payload = { Name: name, Role: role, Status: status, LineUserID: lineUserId,
                     PayType: payType, DailyRate: dailyRate, FixWeek: fixWeek,
-                    SpecialRate: specialRate, DeductPerDay: deductPerDay, SSO: sso };
+                    SpecialRate: specialRate, DeductPerDay: deductPerDay, SSO: sso,
+                    EmpCode: empCode };
   try {
     let res;
     if (userId) {
