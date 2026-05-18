@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สรุปเงินเดือน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green:#06C755; --green-dark:#05A847; --green-light:#E8F9EE;
+  --blue:#3B82F6;  --blue-light:#EFF6FF;  --blue-dark:#1D4ED8;
+  --amber:#F59E0B; --amber-light:#FEF3C7; --amber-dark:#92400E;
+  --red:#EF4444;   --red-light:#FEE2E2;
+  --purple:#7C3AED;--purple-light:#F5F3FF;
+  --orange:#F97316;--orange-light:#FFF7ED;
+  --sky:#0EA5E9;   --sky-light:#F0F9FF;
+  --gray-50:#F9FAFB; --gray-100:#F3F4F6; --gray-200:#E5E7EB;
+  --gray-300:#D1D5DB; --gray-400:#9CA3AF; --gray-500:#6B7280;
+  --gray-600:#4B5563; --gray-700:#374151; --gray-800:#1F2937;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 1px 4px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100vh;font-family:'Sarabun',sans-serif;font-size:14px;
+  color:var(--gray-800);background:#F0F2F5;}
+
+/* ── TOP BAR ── */
+.top-bar{background:var(--green);padding:14px 20px;display:flex;align-items:center;gap:14px;
+  box-shadow:0 2px 8px rgba(6,199,85,.3);}
+.top-bar h1{font-size:18px;font-weight:700;color:#fff;flex:1;}
+.top-bar .sub{font-size:12px;color:rgba(255,255,255,.8);}
+
+/* ── DATE PANEL ── */
+.date-panel{display:flex;flex-wrap:wrap;gap:16px;background:#fff;
+  padding:14px 20px;margin:12px;border-radius:var(--radius);box-shadow:var(--shadow-sm);
+  align-items:flex-end;}
+.dp-group{display:flex;flex-direction:column;gap:5px;}
+.dp-group label{font-size:11px;font-weight:600;color:var(--gray-500);letter-spacing:.04em;}
+.dp-group input[type=date]{border:2px solid var(--gray-200);border-radius:var(--radius-sm);
+  padding:7px 10px;font-size:13px;font-family:inherit;color:var(--gray-800);
+  background:var(--gray-50);outline:none;transition:border-color .15s;}
+.dp-group input[type=date]:focus{border-color:var(--green);}
+.dp-sep{font-size:20px;color:var(--gray-300);align-self:flex-end;padding-bottom:7px;}
+.dp-divider{width:1px;background:var(--gray-200);align-self:stretch;margin:0 4px;}
+.dp-label{font-size:12px;font-weight:700;color:var(--gray-600);align-self:flex-end;
+  padding-bottom:8px;white-space:nowrap;}
+
+/* ── LEGEND ── */
+.legend{display:flex;gap:12px;padding:0 12px 10px;flex-wrap:wrap;font-size:11px;color:var(--gray-600);}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;}
+
+/* ── CONTAINER ── */
+.table-wrap{margin:0 12px 12px;overflow-x:auto;border-radius:var(--radius);box-shadow:var(--shadow);}
+
+/* ── TABLE ── */
+table{border-collapse:collapse;min-width:100%;background:#fff;font-size:13px;}
+th,td{border-bottom:1px solid var(--gray-200);border-right:1px solid var(--gray-200);
+  padding:7px 9px;text-align:center;white-space:nowrap;}
+th{font-weight:600;}
+tr:last-child td{border-bottom:none;}
+
+/* week group headers */
+.gh-0{background:var(--gray-100);color:var(--gray-500);font-size:12px;}
+.gh-1{background:#DBEAFE;color:var(--blue-dark);}
+.gh-2{background:#D1FAE5;color:#065F46;}
+.gh-3{background:#EDE9FE;color:var(--purple);}
+.gh-4{background:#FFEDD5;color:#9A3412;}
+.gh-eom{background:var(--amber-light);color:var(--amber-dark);}
+.gh-total{background:var(--gray-100);color:var(--gray-700);}
+
+/* sub-header rows */
+.sh-0{background:#F8FAFC;color:var(--gray-400);font-size:11px;}
+.sh-1{background:#EFF6FF;color:var(--gray-700);font-size:11px;}
+.sh-2{background:#ECFDF5;color:var(--gray-700);font-size:11px;}
+.sh-3{background:#F5F3FF;color:var(--gray-700);font-size:11px;}
+.sh-4{background:#FFF7ED;color:var(--gray-700);font-size:11px;}
+.sh-eom{background:#FEFCE8;color:var(--gray-700);font-size:11px;}
+
+/* sticky name col */
+.col-name-h{background:var(--gray-800);color:#fff;position:sticky;left:0;z-index:3;
+  text-align:left;font-size:13px;min-width:160px;}
+.col-name{text-align:left;position:sticky;left:0;z-index:2;background:#fff;min-width:160px;
+  border-right:2px solid var(--gray-200)!important;}
+.col-name .name{font-weight:700;color:var(--gray-800);font-size:13px;}
+.col-name .meta{font-size:11px;color:var(--gray-500);margin-top:1px;line-height:1.4;}
+
+/* section rows */
+.sec-row td{background:var(--gray-800);color:#fff;font-weight:700;
+  text-align:left;padding:8px 12px;font-size:13px;border-bottom:none;}
+/* date sub-row */
+.date-row td{background:#334155;color:#94A3B8;font-size:11px;padding:4px 8px;}
+.date-row .col-name{background:#334155;color:#64748B;}
+
+/* result cells */
+.res{font-weight:700;color:var(--gray-800);}
+.res-green{font-weight:700;color:var(--green-dark);background:var(--green-light);}
+.res-amber{font-weight:700;color:var(--amber-dark);background:var(--amber-light);}
+.na{color:var(--gray-300);font-size:12px;}
+.zero{color:var(--gray-400);font-style:italic;font-size:11px;}
+.ot-note{font-size:10px;color:var(--purple);font-weight:600;display:block;margin-top:2px;}
+.sso-sum{font-size:11px;color:var(--amber-dark);font-weight:700;}
+
+/* ── INPUTS ── */
+input[type=number]{width:58px;border:1.5px solid var(--gray-300);border-radius:6px;
+  padding:4px 5px;text-align:center;font-size:12px;font-family:inherit;
+  background:#fff;-webkit-appearance:textfield;transition:border-color .15s,background .15s;}
+input[type=number]:focus{outline:none;border-color:var(--green);}
+
+input.i-days  {border-color:var(--gray-400);}
+input.i-ot    {border-color:#A78BFA;background:#FAF5FF;}
+input.i-bonus {border-color:var(--amber);background:var(--amber-light);}
+input.i-water {border-color:var(--sky);background:var(--sky-light);}
+input.i-sso   {border-color:var(--orange);background:var(--orange-light);}
+input.i-deduct{border-color:var(--red);background:var(--red-light);}
+input.i-pen   {border-color:var(--amber);background:#FFFBEB;}
+input.i-eom   {border-color:var(--green);background:var(--green-light);width:64px;}
+input.i-eom-sso{border-color:var(--orange);background:var(--orange-light);width:64px;}
+
+/* week border separators */
+.wk-sep{border-left:2px solid var(--gray-300)!important;}
+
+/* ── SUMMARY CARDS ── */
+.sum-panel{margin:0 12px 20px;background:#fff;border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px 20px;}
+.sum-panel h2{font-size:14px;font-weight:700;color:var(--gray-700);
+  margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--gray-200);}
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;}
+.sum-card{background:var(--gray-50);border:1px solid var(--gray-200);
+  border-radius:var(--radius-sm);padding:14px 16px;}
+.sum-card .emp{font-weight:700;font-size:14px;color:var(--gray-800);margin-bottom:10px;
+  padding-bottom:8px;border-bottom:1px solid var(--gray-200);}
+.sum-row{display:flex;justify-content:space-between;font-size:12px;
+  padding:3px 0;color:var(--gray-600);}
+.sum-row .val{font-weight:600;color:var(--gray-800);}
+.sum-row .neg{color:var(--red);font-weight:600;}
+.sum-row .pos{color:var(--green-dark);font-weight:600;}
+.sum-divider{border:none;border-top:1px solid var(--gray-200);margin:6px 0;}
+.sum-total{display:flex;justify-content:space-between;font-size:14px;
+  font-weight:700;color:var(--green-dark);padding-top:2px;}
+.sum-grand{display:flex;justify-content:space-between;font-size:11px;
+  color:var(--gray-500);padding-top:4px;}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>สรุปเงินเดือน</h1>
+  <span class="sub">Layout B — Payroll Test</span>
+</div>
+
+<!-- DATE PICKERS -->
+<div class="date-panel">
+  <span class="dp-label">สัปดาห์ที่ 1–4</span>
+  <div class="dp-group">
+    <label>สัปดาห์ที่ 1 เริ่ม (พฤหัส)</label>
+    <input type="date" id="w1-start" value="2026-05-07" onchange="onW1Change()">
+  </div>
+  <div class="dp-divider"></div>
+  <span class="dp-label">สัปดาห์ที่ 0 (เศษเดือนก่อน)</span>
+  <div class="dp-group">
+    <label>เริ่ม</label>
+    <input type="date" id="w0-start" value="2026-04-28" onchange="onW0Change()">
+  </div>
+  <span class="dp-sep">–</span>
+  <div class="dp-group">
+    <label>สิ้นสุด (เสาร์)</label>
+    <input type="date" id="w0-end" value="2026-05-03" onchange="onW0Change()">
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#A78BFA"></div>OT ชม.</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>รายได้พิเศษ</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--sky)"></div>หักน้ำ/ไฟ</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>สปส.</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>หักค่าใช้จ่าย</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#FCD34D"></div>หักโทษ (คืนสิ้นเดือน)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>ข้อมูลสิ้นเดือน</div>
+</div>
+
+<!-- TABLE -->
+<div class="table-wrap">
+<table id="payroll-table">
+  <thead id="payroll-head"></thead>
+  <tbody id="payroll-body"></tbody>
+</table>
+</div>
+
+<!-- SUMMARY -->
+<div class="sum-panel">
+  <h2>สรุปรายบุคคล — พนักงานรายเดือน</h2>
+  <div class="sum-grid" id="sum-grid"></div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+var EMPLOYEES = [
+  { id:'11',  name:'นิรุต ตุนหอม',  type:'weekly',  dayRate:700, maxDays:6 },
+  { id:'12',  name:'อุทิศ กรรมณี',  type:'weekly',  dayRate:900, maxDays:6 },
+  { id:'201', name:'อาว Aung',       type:'monthly', dayRate:600, specialRate:50,
+    fixPerWeek:1500, deductPerAbsent:200, maxDays:6 },
+  { id:'202', name:'สเหน่',          type:'monthly', dayRate:700, specialRate:30,
+    fixPerWeek:2000, deductPerAbsent:300, maxDays:6 }
+];
+var NUM_WEEKS = 4;
+
+var wState = [];
+for(var _w=0;_w<=NUM_WEEKS;_w++){
+  var _ws={};
+  EMPLOYEES.forEach(function(e){
+    _ws[e.id]={days:0,otHours:0,bonusExtra:0,water:0,sso:0,deductNow:0,penalty:0};
+  });
+  wState.push(_ws);
+}
+var eomState={};
+EMPLOYEES.forEach(function(e){eomState[e.id]={bonus:0,deductLump:0,sso:0};});
+
+var w1Start=new Date('2026-05-07');
+var w0Start=new Date('2026-04-28');
+var w0End  =new Date('2026-05-03');
+
+// ── DATES ──
+function parseDate(s){return new Date(s+'T00:00:00');}
+function fmtD(d){var mm=d.getMonth()+1,dd=d.getDate();return (dd<10?'0':'')+dd+'/'+(mm<10?'0':'')+mm;}
+function wkStart(w){var d=new Date(w1Start);d.setDate(w1Start.getDate()+(w-1)*7);return d;}
+function wkEnd(w){var d=wkStart(w);d.setDate(d.getDate()+6);return d;}
+function mthStartW1(){var d=new Date(w0End);d.setDate(w0End.getDate()+2);return d;}
+function mthStart(w){var d=mthStartW1();d.setDate(d.getDate()+(w-1)*7);return d;}
+function mthEnd(w){var d=mthStart(w);d.setDate(d.getDate()+5);return d;}
+
+// ── CALC ──
+function otRate(emp){return Math.floor(emp.dayRate/8*1.5);}
+function calcWeekly(emp,st){
+  var gross=(st.days||0)*emp.dayRate;
+  var ot=(st.otHours||0)*otRate(emp);
+  var bx=(st.bonusExtra||0);
+  var net=Math.max(0,gross+ot+bx-(st.water||0)-(st.sso||0)-(st.deductNow||0));
+  return{gross,ot,bx,net};
+}
+function calcMonthlyWeek(emp,st){
+  var days=st.days||0;
+  if(days<=3)return{net:0,zeroPay:true};
+  var absent=Math.max(0,emp.maxDays-days);
+  var draw=Math.max(0,emp.fixPerWeek-absent*emp.deductPerAbsent);
+  var bx=(st.bonusExtra||0);
+  var net=Math.max(0,draw+bx-(st.water||0)-(st.deductNow||0)-(st.penalty||0));
+  return{net,zeroPay:false};
+}
+function calcMonthlyEOM(emp){
+  var totalDays=0;
+  for(var w=0;w<=NUM_WEEKS;w++)totalDays+=(wState[w][emp.id].days||0);
+  var fullPay=(emp.dayRate+(emp.specialRate||0))*totalDays;
+  var totalOT=0;
+  for(var w=1;w<=NUM_WEEKS;w++)totalOT+=(wState[w][emp.id].otHours||0);
+  var otr=otRate(emp);
+  var otPay=otr*totalOT;
+  var es=eomState[emp.id];
+  var totalDrawn=0;
+  for(var w=1;w<=NUM_WEEKS;w++){var r=calcMonthlyWeek(emp,wState[w][emp.id]);if(!r.zeroPay)totalDrawn+=r.net;}
+  var penBack=0;
+  for(var w=1;w<=NUM_WEEKS;w++)penBack+=(wState[w][emp.id].penalty||0);
+  var sso=es.sso||0;
+  var eomPay=fullPay+otPay+(es.bonus||0)-totalDrawn-sso-(es.deductLump||0)+penBack;
+  return{totalDays,fullPay,otPay,otRate:otr,totalOT,totalDrawn,penBack,
+         eomPay,bonus:es.bonus||0,deductLump:es.deductLump||0,sso,
+         grandTotal:totalDrawn+eomPay};
+}
+function weeklyGrand(emp){var t=0;for(var w=1;w<=NUM_WEEKS;w++)t+=calcWeekly(emp,wState[w][emp.id]).net;return t;}
+function weeklySSOTotal(emp){var t=0;for(var w=1;w<=NUM_WEEKS;w++)t+=(wState[w][emp.id].sso||0);return t;}
+
+// ── COLS (8 per week) ──
+var WCOLS=['วันทำงาน','OT ชม.','รายได้พิเศษ','น้ำ/ไฟ','สปส.','หักค่าใช้จ่าย','โทษ','รับ/สัปดาห์'];
+var NC=WCOLS.length;
+
+// ── RENDER HEAD ──
+function renderHead(){
+  var ghCls=['','gh-1','gh-2','gh-3','gh-4'];
+  var shCls=['','sh-1','sh-2','sh-3','sh-4'];
+  var r1='<tr>';
+  r1+='<th rowspan="2" class="col-name-h">ชื่อ-นามสกุล</th>';
+  r1+='<th class="gh-0 wk-sep" rowspan="2" style="min-width:65px">สัปดาห์ที่ 0</th>';
+  for(var w=1;w<=NUM_WEEKS;w++){
+    r1+='<th colspan="'+NC+'" class="'+ghCls[w]+' wk-sep">สัปดาห์ที่ '+w+'</th>';
+  }
+  r1+='<th colspan="4" class="gh-eom wk-sep">สิ้นเดือน</th>';
+  r1+='<th class="gh-total" rowspan="2">รับทั้งเดือน</th>';
+  r1+='</tr>';
+  var r2='<tr>';
+  for(var w=1;w<=NUM_WEEKS;w++){
+    var c=shCls[w];
+    WCOLS.forEach(function(col,i){
+      r2+='<th class="'+c+(i===0?' wk-sep':'')+'">'+col+'</th>';
+    });
+  }
+  r2+='<th class="sh-eom wk-sep">โบนัส</th>';
+  r2+='<th class="sh-eom">หักก้อน</th>';
+  r2+='<th class="sh-eom">สปส.</th>';
+  r2+='<th class="sh-eom">รับสิ้นเดือน</th>';
+  r2+='</tr>';
+  document.getElementById('payroll-head').innerHTML=r1+r2;
+}
+
+// ── RENDER BODY ──
+function iN(cls,eId,w,field,val){
+  return '<input type="number" min="0" class="'+cls+'" value="'+(val||0)+'"'
+        +' onchange="setState('+w+',\''+eId+'\',\''+field+'\',this.value)">';
+}
+function iE(eId,field,val,cls){
+  return '<input type="number" min="0" class="'+(cls||'i-eom')+'" value="'+(val||0)+'"'
+        +' onchange="setEom(\''+eId+'\',\''+field+'\',this.value)">';
+}
+
+function renderBody(){
+  var html='';
+  var SPAN=2+NUM_WEEKS*NC+4+1;
+
+  // ─ WEEKLY ─
+  html+='<tr class="sec-row"><td colspan="'+SPAN+'">👷 พนักงานรายวัน &nbsp;·&nbsp; จ่ายทุกสัปดาห์ &nbsp;·&nbsp; นับ พฤ–พุธ</td></tr>';
+  html+='<tr class="date-row">';
+  html+='<td class="col-name" style="color:#94A3B8;font-size:11px;">ช่วงเวลา</td>';
+  html+='<td class="wk-sep">—</td>';
+  for(var w=1;w<=NUM_WEEKS;w++){
+    html+='<td colspan="'+NC+'" class="wk-sep">'+fmtD(wkStart(w))+' – '+fmtD(wkEnd(w))+'</td>';
+  }
+  html+='<td colspan="4" class="wk-sep">—</td><td>—</td>';
+  html+='</tr>';
+
+  EMPLOYEES.filter(function(e){return e.type==='weekly';}).forEach(function(emp){
+    html+='<tr>';
+    html+='<td class="col-name"><div class="name">'+emp.name+'</div>'
+         +'<div class="meta">฿'+emp.dayRate+'/วัน</div></td>';
+    html+='<td class="na wk-sep">—</td>';
+    for(var w=1;w<=NUM_WEEKS;w++){
+      var st=wState[w][emp.id],r=calcWeekly(emp,st);
+      html+='<td class="wk-sep">'+iN('i-days',emp.id,w,'days',st.days)+'</td>';
+      html+='<td>'+iN('i-ot',emp.id,w,'otHours',st.otHours)+'</td>';
+      html+='<td>'+iN('i-bonus',emp.id,w,'bonusExtra',st.bonusExtra)+'</td>';
+      html+='<td>'+iN('i-water',emp.id,w,'water',st.water)+'</td>';
+      html+='<td>'+iN('i-sso',emp.id,w,'sso',st.sso)+'</td>';
+      html+='<td>'+iN('i-deduct',emp.id,w,'deductNow',st.deductNow)+'</td>';
+      html+='<td class="na">—</td>';
+      html+='<td class="res">฿'+r.net.toLocaleString()+'</td>';
+    }
+    html+='<td class="na wk-sep">—</td><td class="na">—</td>';
+    html+='<td class="sso-sum">฿'+weeklySSOTotal(emp).toLocaleString()+'</td>';
+    html+='<td class="na">—</td>';
+    html+='<td class="res-green">฿'+weeklyGrand(emp).toLocaleString()+'</td>';
+    html+='</tr>';
+  });
+
+  // ─ MONTHLY ─
+  html+='<tr class="sec-row"><td colspan="'+SPAN+'">📋 พนักงานรายเดือน &nbsp;·&nbsp; เบิกล่วงหน้า / จ่ายจริงสิ้นเดือน &nbsp;·&nbsp; นับ จ–ส</td></tr>';
+  html+='<tr class="date-row">';
+  html+='<td class="col-name" style="color:#94A3B8;font-size:11px;">ช่วงเวลา</td>';
+  html+='<td class="wk-sep">'+fmtD(w0Start)+' – '+fmtD(w0End)+'</td>';
+  for(var w=1;w<=NUM_WEEKS;w++){
+    html+='<td colspan="'+NC+'" class="wk-sep">'+fmtD(mthStart(w))+' – '+fmtD(mthEnd(w))+'</td>';
+  }
+  html+='<td colspan="4" class="wk-sep">—</td><td>—</td>';
+  html+='</tr>';
+
+  EMPLOYEES.filter(function(e){return e.type==='monthly';}).forEach(function(emp){
+    html+='<tr>';
+    html+='<td class="col-name"><div class="name">'+emp.name+'</div>'
+         +'<div class="meta">฿'+emp.dayRate+'/วัน +฿'+(emp.specialRate||0)+' พิเศษ<br>Fix ฿'+emp.fixPerWeek+'/สัปดาห์</div></td>';
+    var st0=wState[0][emp.id];
+    html+='<td class="wk-sep">'+iN('i-days',emp.id,0,'days',st0.days)+'</td>';
+    for(var w=1;w<=NUM_WEEKS;w++){
+      var st=wState[w][emp.id],r=calcMonthlyWeek(emp,st);
+      html+='<td class="wk-sep">'+iN('i-days',emp.id,w,'days',st.days)+'</td>';
+      html+='<td>'+iN('i-ot',emp.id,w,'otHours',st.otHours)+'</td>';
+      html+='<td>'+iN('i-bonus',emp.id,w,'bonusExtra',st.bonusExtra)+'</td>';
+      html+='<td>'+iN('i-water',emp.id,w,'water',st.water)+'</td>';
+      html+='<td class="na">—</td>';
+      html+='<td>'+iN('i-deduct',emp.id,w,'deductNow',st.deductNow)+'</td>';
+      html+='<td>'+iN('i-pen',emp.id,w,'penalty',st.penalty)+'</td>';
+      if(r.zeroPay){html+='<td class="zero">ไม่จ่าย</td>';}
+      else{html+='<td class="res">฿'+r.net.toLocaleString()+'</td>';}
+    }
+    var es=eomState[emp.id],eom=calcMonthlyEOM(emp);
+    html+='<td class="wk-sep">'+iE(emp.id,'bonus',es.bonus)+'</td>';
+    html+='<td>'+iE(emp.id,'deductLump',es.deductLump)+'</td>';
+    html+='<td>'+iE(emp.id,'sso',es.sso,'i-eom-sso')+'</td>';
+    html+='<td class="res-amber">฿'+Math.round(eom.eomPay).toLocaleString()
+         +'<span class="ot-note">OT '+eom.totalOT+' ชม. = ฿'+eom.otPay.toLocaleString()+'</span></td>';
+    html+='<td class="res-green">฿'+Math.round(eom.grandTotal).toLocaleString()+'</td>';
+    html+='</tr>';
+  });
+
+  document.getElementById('payroll-body').innerHTML=html;
+}
+
+// ── SUMMARY ──
+function renderSummary(){
+  var html='';
+  EMPLOYEES.filter(function(e){return e.type==='monthly';}).forEach(function(emp){
+    var eom=calcMonthlyEOM(emp);
+    html+='<div class="sum-card">';
+    html+='<div class="emp">'+emp.name+'</div>';
+    html+='<div class="sum-row"><span>วันทำงานรวม (รวม สัปดาห์ที่ 0)</span><span class="val">'+eom.totalDays+' วัน</span></div>';
+    html+='<div class="sum-row"><span>('+emp.dayRate+'+'+(emp.specialRate||0)+') × '+eom.totalDays+' วัน</span><span class="val">฿'+eom.fullPay.toLocaleString()+'</span></div>';
+    html+='<div class="sum-row"><span>OT ('+eom.otRate+' ฿/ชม. × '+eom.totalOT+' ชม.)</span><span class="val">฿'+eom.otPay.toLocaleString()+'</span></div>';
+    html+='<div class="sum-row"><span>โบนัส</span><span class="val">฿'+eom.bonus.toLocaleString()+'</span></div>';
+    html+='<hr class="sum-divider">';
+    html+='<div class="sum-row"><span>เบิกล่วงหน้า (สะสม)</span><span class="neg">−฿'+eom.totalDrawn.toLocaleString()+'</span></div>';
+    html+='<div class="sum-row"><span>หักก้อนสิ้นเดือน</span><span class="neg">−฿'+eom.deductLump.toLocaleString()+'</span></div>';
+    html+='<div class="sum-row"><span>คืนหักโทษ</span><span class="pos">+฿'+eom.penBack.toLocaleString()+'</span></div>';
+    html+='<div class="sum-row"><span>ประกันสังคม</span><span class="neg">−฿'+eom.sso.toLocaleString()+'</span></div>';
+    html+='<hr class="sum-divider">';
+    html+='<div class="sum-total"><span>รับสิ้นเดือน</span><span>฿'+Math.round(eom.eomPay).toLocaleString()+'</span></div>';
+    html+='<div class="sum-grand"><span>รับทั้งเดือน (เบิก + สิ้นเดือน)</span><span>฿'+Math.round(eom.grandTotal).toLocaleString()+'</span></div>';
+    html+='</div>';
+  });
+  document.getElementById('sum-grid').innerHTML=html;
+}
+
+// ── MAIN ──
+function render(){renderHead();renderBody();renderSummary();}
+function setState(w,eId,f,v){wState[w][eId][f]=parseFloat(v)||0;render();}
+function setEom(eId,f,v){eomState[eId][f]=parseFloat(v)||0;render();}
+function onW1Change(){var v=document.getElementById('w1-start').value;if(v)w1Start=parseDate(v);render();}
+function onW0Change(){
+  var vs=document.getElementById('w0-start').value,ve=document.getElementById('w0-end').value;
+  if(vs)w0Start=parseDate(vs);if(ve)w0End=parseDate(ve);render();
+}
+render();
+</script>
+</body>
+</html>

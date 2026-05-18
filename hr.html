@@ -403,7 +403,13 @@
 
 <script>
 const API_URL = (() => {
-  try { return localStorage.getItem('autoRepairApiUrl') || ''; } catch(e) { return ''; }
+  try {
+    return localStorage.getItem('autoRepairApiUrl')
+      || localStorage.getItem('apiUrl')
+      || 'https://script.google.com/macros/s/AKfycbx5H77PCh6ehp1S2oTqVKiHCQh2-sfT-GPOvFTs82crSQ24qexfNutycuiPawCp7u5r/exec';
+  } catch(e) {
+    return 'https://script.google.com/macros/s/AKfycbx5H77PCh6ehp1S2oTqVKiHCQh2-sfT-GPOvFTs82crSQ24qexfNutycuiPawCp7u5r/exec';
+  }
 })();
 
 const ROLE_LABEL = { admin: 'Admin', user: 'Office', accountant: 'ฝ่ายบัญชี', executive: 'ผู้บริหาร', labor: 'แรงงาน' };
