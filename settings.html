@@ -228,13 +228,13 @@
                   <th>บทบาท</th>
                   <th>สถานะ</th>
                   <th>ประเภทจ่าย</th>
-                  <th>ค่าแรง/วัน</th>
-                  <th>Fix/สัปดาห์</th>
-                  <th>พิเศษ/วัน</th>
-                  <th>หัก/วันหยุด</th>
-                  <th>ส.ป.ส./เดือน</th>
+                  <th style="background:#dcfce7;color:#166534;">เงินรายเดือน</th>
+                  <th style="background:#dcfce7;color:#166534;">เงินรายวัน</th>
+                  <th style="background:#dcfce7;color:#166534;">จ่ายต่อสัปดาห์</th>
+                  <th style="background:#dcfce7;color:#166534;">พิเศษต่อวัน</th>
+                  <th style="background:#fee2e2;color:#dc2626;">หักวันหยุด</th>
+                  <th style="background:#fee2e2;color:#dc2626;">ส.ป.ส.</th>
                   <th><i class="fa-brands fa-line" style="color:#06C755;"></i> LINE</th>
-                  <th>จัดการ</th>
                   <th style="text-align:center;">จัดการ</th>
                 </tr>
               </thead>
@@ -495,7 +495,11 @@
         <!-- monthly fields: รายเดือน/เบิกย่อย -->
         <div id="um_monthlyFields" style="display:none;">
           <div class="form-group">
-            <label>ค่าแรง Fix/สัปดาห์ (บาท)</label>
+            <label>ค่าแรง/วัน (บาท)</label>
+            <input type="number" class="form-control" id="um_dailyRate2" placeholder="เช่น 600" min="0" step="10" />
+          </div>
+          <div class="form-group">
+            <label>จ่ายต่อสัปดาห์ Fix (บาท)</label>
             <input type="number" class="form-control" id="um_fixWeek2" placeholder="เช่น 1500" min="0" step="100" />
           </div>
           <div class="form-group">
@@ -1152,11 +1156,12 @@ function renderUsersTable(users) {
         </span>
       </td>
       <td>${isLabor ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;${payColor[pt]}">${payLabel[pt]}</span>` : dash}</td>
-      <td style="font-size:13px;text-align:right;">${pt==='weekly' && u.DailyRate ? Number(u.DailyRate).toLocaleString() : dash}</td>
-      <td style="font-size:13px;text-align:right;">${pt==='monthly' && u.FixWeek ? Number(u.FixWeek).toLocaleString() : dash}</td>
-      <td style="font-size:13px;text-align:right;">${isLabor && u.SpecialRate ? Number(u.SpecialRate).toLocaleString() : dash}</td>
-      <td style="font-size:13px;text-align:right;">${pt==='monthly' && u.DeductPerDay ? Number(u.DeductPerDay).toLocaleString() : dash}</td>
-      <td style="font-size:13px;text-align:right;">${isLabor && u.SSO ? Number(u.SSO).toLocaleString() : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${pt==='none' && u.FixWeek ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.FixWeek).toLocaleString()+'</span>' : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${pt==='weekly' && u.DailyRate ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.DailyRate).toLocaleString()+'</span>' : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${pt==='monthly' && u.FixWeek ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.FixWeek).toLocaleString()+'</span>' : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${(pt==='weekly'||pt==='monthly') && u.SpecialRate ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.SpecialRate).toLocaleString()+'</span>' : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#fef2f2;">${pt==='monthly' && u.DeductPerDay ? '<span style="color:#dc2626;font-weight:600;">฿'+Number(u.DeductPerDay).toLocaleString()+'</span>' : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#fef2f2;">${isLabor && u.SSO ? '<span style="color:#dc2626;font-weight:600;">฿'+Number(u.SSO).toLocaleString()+'</span>' : dash}</td>
       <td style="font-size:12px;color:${u.LineUserID?'#06C755':'var(--gray-400)'};">
         ${u.LineUserID ? '<i class="fa-brands fa-line"></i> เชื่อมแล้ว' : '<span style="opacity:.5;">-</span>'}
       </td>
@@ -1206,7 +1211,11 @@ function togglePayFields() {
   document.getElementById('um_noneFields').style.display      = pt === 'none'    ? '' : 'none';
   document.getElementById('um_weeklyFields').style.display    = pt === 'weekly'  ? '' : 'none';
   document.getElementById('um_monthlyFields').style.display   = pt === 'monthly' ? '' : 'none';
+  // sharedPayFields (พิเศษ/วัน + ส.ป.ส.) แสดงเฉพาะ weekly และ monthly
   document.getElementById('um_sharedPayFields').style.display = (pt === 'weekly' || pt === 'monthly') ? '' : 'none';
+  // ล้าง field ที่ซ่อนอยู่เพื่อไม่ให้ค่าเก่าปนไป
+  if (pt !== 'weekly')  { document.getElementById('um_dailyRate').value  = ''; }
+  if (pt !== 'monthly') { document.getElementById('um_dailyRate2').value = ''; }
 }
 
 function openUserModal(userId) {
@@ -1219,6 +1228,7 @@ function openUserModal(userId) {
   document.getElementById('um_lineUserId').value  = '';
   document.getElementById('um_payType').value     = 'none';
   document.getElementById('um_dailyRate').value   = '';
+  document.getElementById('um_dailyRate2').value  = '';
   document.getElementById('um_fixWeek').value     = '';
   document.getElementById('um_fixWeek2').value    = '';
   document.getElementById('um_deductPerDay').value= '';
@@ -1238,10 +1248,11 @@ function openUserModal(userId) {
       document.getElementById('um_status').value      = u.Status || 'active';
       document.getElementById('um_lineUserId').value  = u.LineUserID || '';
       document.getElementById('um_payType').value     = pt;
-      document.getElementById('um_dailyRate').value   = u.DailyRate || '';
-      // none = รายเดือน ใช้ fixWeek เก็บรายได้/เดือน
-      document.getElementById('um_fixWeek').value     = pt === 'none' ? (u.FixWeek || '') : '';
-      // monthly/เบิกย่อย ใช้ fixWeek2
+      // weekly: dailyRate, monthly: dailyRate2, none: ไม่มี
+      document.getElementById('um_dailyRate').value   = pt === 'weekly'  ? (u.DailyRate || '') : '';
+      document.getElementById('um_dailyRate2').value  = pt === 'monthly' ? (u.DailyRate || '') : '';
+      // none=รายเดือน: fixWeek=รายได้/เดือน, monthly: fixWeek2=จ่ายต่อสัปดาห์
+      document.getElementById('um_fixWeek').value     = pt === 'none'    ? (u.FixWeek || '') : '';
       document.getElementById('um_fixWeek2').value    = pt === 'monthly' ? (u.FixWeek || '') : '';
       document.getElementById('um_deductPerDay').value= u.DeductPerDay || '';
       document.getElementById('um_specialRate').value = u.SpecialRate || '';
@@ -1267,14 +1278,21 @@ async function saveUser() {
   const status      = document.getElementById('um_status').value;
   const lineUserId  = document.getElementById('um_lineUserId').value.trim();
   const payType     = document.getElementById('um_payType').value;
-  const dailyRate   = parseFloat(document.getElementById('um_dailyRate').value) || 0;
-  // FixWeek: none=รายได้/เดือน, monthly/weekly=Fix/สัปดาห์
+  // DailyRate: weekly=um_dailyRate, monthly=um_dailyRate2, none=0
+  const dailyRate   = payType === 'weekly'
+    ? (parseFloat(document.getElementById('um_dailyRate').value) || 0)
+    : payType === 'monthly'
+      ? (parseFloat(document.getElementById('um_dailyRate2').value) || 0)
+      : 0;
+  // FixWeek: none=รายได้/เดือน(um_fixWeek), monthly=จ่าย/สัปดาห์(um_fixWeek2), weekly=0
   const fixWeek     = payType === 'none'
     ? (parseFloat(document.getElementById('um_fixWeek').value) || 0)
-    : (parseFloat(document.getElementById('um_fixWeek2').value) || 0);
+    : payType === 'monthly'
+      ? (parseFloat(document.getElementById('um_fixWeek2').value) || 0)
+      : 0;
   const specialRate = parseFloat(document.getElementById('um_specialRate').value) || 0;
   const deductPerDay= parseFloat(document.getElementById('um_deductPerDay').value) || 0;
-  // SSO: none ใช้ um_sso, weekly/monthly ใช้ um_sso2
+  // SSO: none=um_sso, weekly/monthly=um_sso2
   const sso         = payType === 'none'
     ? (parseFloat(document.getElementById('um_sso').value) || 0)
     : (parseFloat(document.getElementById('um_sso2').value) || 0);
