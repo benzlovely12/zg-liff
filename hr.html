@@ -545,14 +545,14 @@ async function loadPayrollEmps() {
         return pt === 'weekly' || pt === 'monthly' || pt === 'none';
       }).map(u => ({
         id: u.UserID, name: u.Name,
-        payType: u.PayType || 'none', // เก็บ payType จริงไว้แยก section
-        // weekly=รายวัน, monthly=รายเดือน/เบิกย่อย, none=รายเดือนปกติ
+        payType: u.PayType || 'none',
         type: (u.PayType === 'weekly') ? 'weekly' : (u.PayType === 'monthly' ? 'monthly' : 'fixed'),
         dayRate:         Number(u.DailyRate) || 0,
         specialRate:     Number(u.SpecialRate) || 0,
-        fixPerWeek:      Number(u.FixWeek) || 0,   // monthly/เบิกย่อย: fix/สัปดาห์, none: รายได้/เดือน
+        fixPerWeek:      Number(u.FixWeek) || 0,
         deductPerAbsent: Number(u.DeductPerDay) || 0,
-        sso:             Number(u.SSO) || 0,        // default SSO จาก user (ใส่เป็น default เท่านั้น)
+        sso:             Number(u.SSO) || 0,
+        monthBonus:      Number(u.MonthBonus) || 0, // พิเศษต่อเดือน default
         maxDays:         P_MAX_DAYS
       }));
     }
@@ -599,16 +599,21 @@ function initPWState() {
   }
   pEomState = {};
   P_EMPS.forEach(function(e) {
-    pEomState[e.id] = { bonus:0, deductLump:0, sso:0, _id:'' };
+    pEomState[e.id] = {
+      bonus:     e.monthBonus || 0,  // default จาก MonthBonus ใน user
+      deductLump:0,
+      sso:       (e.type === 'monthly') ? (e.sso || 0) : 0,  // default SSO สำหรับ monthly/เบิกย่อย
+      _id:''
+    };
   });
   // pFixedState: รายเดือนปกติ (PayType=none) — ดึง default จาก user แต่ยังไม่ save
   pFixedState = {};
   P_EMPS.filter(function(e){ return e.type === 'fixed'; }).forEach(function(e) {
     pFixedState[e.id] = {
-      salary:    e.fixPerWeek,  // รายได้/เดือน (default จาก FixWeek)
-      bonusExtra:0,             // พิเศษ/เดือน (ก้อน)
-      sso:       e.sso,         // ส.ป.ส. (default จาก SSO ใน user)
-      deductLump:0,             // หักค่าใช้จ่าย (ก้อน)
+      salary:    e.fixPerWeek,      // รายได้/เดือน (default จาก FixWeek)
+      bonusExtra:e.monthBonus || 0, // พิเศษ/เดือน (default จาก MonthBonus)
+      sso:       e.sso || 0,        // ส.ป.ส. (default จาก SSO)
+      deductLump:0,
       _id:''
     };
   });
@@ -694,7 +699,7 @@ function renderPIHead() {
     var c=shCls[w];
     PCOLS.forEach(function(col,i){ r2+='<th class="'+c+(i===0?' pwk-sep':'')+'">'+col+'</th>'; });
   }
-  r2+='<th class="psh-eom pwk-sep">โบนัส</th><th class="psh-eom">หักก้อน</th><th class="psh-eom">สปส.</th><th class="psh-eom">รับสิ้นเดือน</th>';
+  r2+='<th class="psh-eom pwk-sep">พิเศษ/เดือน</th><th class="psh-eom">หักค่าใช้จ่าย</th><th class="psh-eom">ส.ป.ส.</th><th class="psh-eom">รับสิ้นเดือน</th>';
   r2+='</tr>';
   document.getElementById('pi-head').innerHTML = r1+r2;
 }

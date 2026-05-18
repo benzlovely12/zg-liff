@@ -232,6 +232,7 @@
                   <th style="background:#dcfce7;color:#166534;">เงินรายวัน</th>
                   <th style="background:#dcfce7;color:#166534;">จ่ายต่อสัปดาห์</th>
                   <th style="background:#dcfce7;color:#166534;">พิเศษต่อวัน</th>
+                  <th style="background:#dcfce7;color:#166534;">พิเศษต่อเดือน</th>
                   <th style="background:#fee2e2;color:#dc2626;">หักวันหยุด</th>
                   <th style="background:#fee2e2;color:#dc2626;">ส.ป.ส.</th>
                   <th><i class="fa-brands fa-line" style="color:#06C755;"></i> LINE</th>
@@ -519,6 +520,16 @@
               <label>หัก ส.ป.ส./เดือน (บาท)</label>
               <input type="number" class="form-control" id="um_sso2" placeholder="0 = ไม่หัก" min="0" step="1" />
             </div>
+          </div>
+        </div>
+
+        <!-- พิเศษต่อเดือน — ทุก PayType ยกเว้น nopay -->
+        <div id="um_monthBonusField" style="display:none;">
+          <div class="form-group" style="margin-top:10px;">
+            <label style="color:#166534;font-weight:600;"><i class="fa-solid fa-gift" style="margin-right:5px;"></i>พิเศษต่อเดือน / โบนัส default (บาท)</label>
+            <input type="number" class="form-control" id="um_monthBonus" placeholder="0 = ไม่มี" min="0" step="100"
+              style="border-color:#86efac;background:#f0fdf4;" />
+            <div style="font-size:11px;color:var(--gray-400);margin-top:3px;">ใส่เป็น default ในช่อง โบนัส ตอนกรอกค่าแรง — แก้ไขได้ก่อนบันทึก</div>
           </div>
         </div>
       </div>
@@ -1157,9 +1168,10 @@ function renderUsersTable(users) {
       </td>
       <td>${isLabor ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;${payColor[pt]}">${payLabel[pt]}</span>` : dash}</td>
       <td style="font-size:13px;text-align:right;background:#f0fdf4;">${pt==='none' && u.FixWeek ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.FixWeek).toLocaleString()+'</span>' : dash}</td>
-      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${pt==='weekly' && u.DailyRate ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.DailyRate).toLocaleString()+'</span>' : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${(pt==='weekly'||pt==='monthly') && u.DailyRate ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.DailyRate).toLocaleString()+'</span>' : dash}</td>
       <td style="font-size:13px;text-align:right;background:#f0fdf4;">${pt==='monthly' && u.FixWeek ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.FixWeek).toLocaleString()+'</span>' : dash}</td>
-      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${(pt==='weekly'||pt==='monthly') && u.SpecialRate ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.SpecialRate).toLocaleString()+'</span>' : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${(pt==='weekly'||pt==='monthly') && u.SpecialRate ? '<span style="color:#166634;font-weight:600;">฿'+Number(u.SpecialRate).toLocaleString()+'</span>' : dash}</td>
+      <td style="font-size:13px;text-align:right;background:#f0fdf4;">${u.MonthBonus ? '<span style="color:#166534;font-weight:600;">฿'+Number(u.MonthBonus).toLocaleString()+'</span>' : dash}</td>
       <td style="font-size:13px;text-align:right;background:#fef2f2;">${pt==='monthly' && u.DeductPerDay ? '<span style="color:#dc2626;font-weight:600;">฿'+Number(u.DeductPerDay).toLocaleString()+'</span>' : dash}</td>
       <td style="font-size:13px;text-align:right;background:#fef2f2;">${isLabor && u.SSO ? '<span style="color:#dc2626;font-weight:600;">฿'+Number(u.SSO).toLocaleString()+'</span>' : dash}</td>
       <td style="font-size:12px;color:${u.LineUserID?'#06C755':'var(--gray-400)'};">
@@ -1211,9 +1223,9 @@ function togglePayFields() {
   document.getElementById('um_noneFields').style.display      = pt === 'none'    ? '' : 'none';
   document.getElementById('um_weeklyFields').style.display    = pt === 'weekly'  ? '' : 'none';
   document.getElementById('um_monthlyFields').style.display   = pt === 'monthly' ? '' : 'none';
-  // sharedPayFields (พิเศษ/วัน + ส.ป.ส.) แสดงเฉพาะ weekly และ monthly
   document.getElementById('um_sharedPayFields').style.display = (pt === 'weekly' || pt === 'monthly') ? '' : 'none';
-  // ล้าง field ที่ซ่อนอยู่เพื่อไม่ให้ค่าเก่าปนไป
+  // พิเศษต่อเดือน แสดงทุก PayType ยกเว้น nopay
+  document.getElementById('um_monthBonusField').style.display = pt !== 'nopay'   ? '' : 'none';
   if (pt !== 'weekly')  { document.getElementById('um_dailyRate').value  = ''; }
   if (pt !== 'monthly') { document.getElementById('um_dailyRate2').value = ''; }
 }
@@ -1235,6 +1247,7 @@ function openUserModal(userId) {
   document.getElementById('um_specialRate').value = '';
   document.getElementById('um_sso').value         = '';
   document.getElementById('um_sso2').value        = '';
+  document.getElementById('um_monthBonus').value  = '';
   document.getElementById('um_empCode').value     = '';
   togglePayFields();
 
@@ -1259,6 +1272,7 @@ function openUserModal(userId) {
       // none ใช้ sso, weekly/monthly ใช้ sso2
       document.getElementById('um_sso').value         = pt === 'none' ? (u.SSO || '') : '';
       document.getElementById('um_sso2').value        = (pt === 'weekly' || pt === 'monthly') ? (u.SSO || '') : '';
+      document.getElementById('um_monthBonus').value  = u.MonthBonus || '';
       document.getElementById('um_empCode').value     = u.EmpCode || '';
       togglePayFields();
     }
@@ -1296,12 +1310,13 @@ async function saveUser() {
   const sso         = payType === 'none'
     ? (parseFloat(document.getElementById('um_sso').value) || 0)
     : (parseFloat(document.getElementById('um_sso2').value) || 0);
+  const monthBonus  = parseFloat(document.getElementById('um_monthBonus').value) || 0;
   const empCode     = document.getElementById('um_empCode').value.trim();
 
   const payload = { Name: name, Role: role, Status: status, LineUserID: lineUserId,
                     PayType: payType, DailyRate: dailyRate, FixWeek: fixWeek,
                     SpecialRate: specialRate, DeductPerDay: deductPerDay, SSO: sso,
-                    EmpCode: empCode };
+                    MonthBonus: monthBonus, EmpCode: empCode };
   try {
     let res;
     if (userId) {
