@@ -87,7 +87,9 @@
     .pot-note { font-size: 10px; color: #6d28d9; font-weight: 600; display: block; margin-top: 2px; }
     .psso-sum { font-size: 11px; color: #92400e; font-weight: 700; }
     input.pi-days   { width:52px; border:1.5px solid #16a34a; background:#dcfce7; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
-    input.pi-date   { width:90px; padding:2px 4px; font-size:11px; border:1px solid #d1d5db; border-radius:4px; color:#374151; background:#fff; font-family:inherit; }
+    input.pi-date   { width:78px; padding:1px 3px; font-size:10px; border:1px solid #cbd5e1; border-radius:3px; color:#1e293b; background:#f8fafc; font-family:inherit; display:block; }
+    .pdate-inputs   { display:flex; flex-direction:column; gap:1px; align-items:center; }
+    .pdate-label    { font-size:9px; color:#94a3b8; text-align:center; line-height:1.2; margin-top:2px; }
     input.pi-ot     { width:52px; border:1.5px solid #a78bfa; background:#faf5ff; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
     input.pi-bonus  { width:58px; border:1.5px solid #16a34a; background:#dcfce7; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
     input.pi-water  { width:58px; border:1.5px solid #0ea5e9; background:#f0f9ff; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
@@ -98,6 +100,16 @@
     input.pi-eom-sso{ width:64px; border:1.5px solid #f97316; background:#fff7ed; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
     input[type=number]:focus { outline: none; }
     .pdp-panel { display:flex; flex-wrap:wrap; gap:14px; background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 18px; margin-bottom:16px; align-items:flex-end; }
+    .pmonth-bar { display:flex; align-items:center; gap:12px; background:#1e293b; border-radius:var(--radius); padding:10px 18px; margin-bottom:14px; }
+    .pmonth-bar label { color:#94a3b8; font-size:12px; font-weight:600; white-space:nowrap; }
+    .pmonth-bar input[type=month] { padding:5px 10px; border-radius:6px; border:1.5px solid #475569; background:#0f172a; color:#f1f5f9; font-size:14px; font-family:inherit; cursor:pointer; }
+    .pmonth-bar input[type=month]:focus { outline:none; border-color:#38bdf8; }
+    .pmonth-status { font-size:12px; color:#64748b; margin-left:4px; }
+    .pmonth-status.has-data { color:#4ade80; }
+    .pmonth-status.no-data  { color:#f97316; }
+    .pmonth-nav { display:flex; gap:4px; }
+    .pmonth-nav button { background:#334155; border:none; color:#94a3b8; border-radius:5px; padding:4px 10px; cursor:pointer; font-size:13px; }
+    .pmonth-nav button:hover { background:#475569; color:#f1f5f9; }
     .pdp-group { display:flex; flex-direction:column; gap:4px; }
     .pdp-group label { font-size:11px; font-weight:600; color:var(--gray-500); letter-spacing:.05em; }
     .pdp-group input[type=date] { border:2px solid var(--gray-200); border-radius:var(--radius-sm); padding:6px 10px; font-size:13px; font-family:inherit; background:var(--gray-50); outline:none; }
@@ -179,6 +191,15 @@
             <div class="save-bar"><button class="btn-save" onclick="savePayrollData()" id="btnSave"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button></div>
           </div>
           <div style="padding:16px 20px;">
+            <div class="pmonth-bar">
+              <label><i class="fa-solid fa-calendar-days" style="margin-right:6px;color:#38bdf8;"></i>เดือน / ปี</label>
+              <div class="pmonth-nav">
+                <button onclick="pChangeMonth(-1)" title="เดือนก่อน">&#8249;</button>
+                <button onclick="pChangeMonth(1)"  title="เดือนถัดไป">&#8250;</button>
+              </div>
+              <input type="month" id="p-month-picker" onchange="pOnMonthChange(this.value)">
+              <span class="pmonth-status" id="p-month-status">—</span>
+            </div>
             <div class="pdp-panel" style="background:#f0fdf4;border:1px solid #bbf7d0;padding:10px 16px;font-size:13px;color:#166534;">
               <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
               กรอกวันที่จ่าย (PayDate) และช่วงเวลา (ตั้งแต่–ถึง) ในแต่ละสัปดาห์ด้านล่างตารางของแต่ละพนักงาน
@@ -314,7 +335,10 @@ async function loadPayrollEmps() {
 }
 function initPayrollDates() {
   if(!pCurrentMonth) pCurrentMonth=fmtMonth(new Date());
+  var picker=document.getElementById('p-month-picker');
+  if(picker) picker.value=pCurrentMonth;
   initPWState();
+  pSetMonthStatus(false);
 }
 function initPWState() {
   pWState=[];
@@ -390,15 +414,16 @@ function renderPIBody(){
   if(wEmp.length){
     html+='<tr class="psec-row"><td colspan="'+SPAN+'">👷 พนักงานรายวัน · นับ พฤ–พุธ</td></tr>';
     html+='<tr class="pdate-row"><td class="pcol-name" style="color:#94a3b8;font-size:11px;">วันที่จ่าย<br>ช่วงเวลา</td><td class="pwk-sep pna">—</td>';
+    var _ws=P_EMPS.filter(function(e){return e.type==='weekly';})[0];
     for(var w=1;w<=P_NUM_WEEKS;w++){
-      var _ws=P_EMPS.filter(function(e){return e.type==='weekly';})[0];
       var _wst=_ws?pWState[w][_ws.id]:{payDate:'',periodFrom:'',periodTo:''};
-      html+='<td colspan="'+PNC+'" class="pwk-sep" style="vertical-align:top;padding:4px 2px;">'
-        +'<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">'
-        +'<div style="font-size:10px;color:#6b7280;text-align:center;">จ่าย</div>'
+      html+='<td colspan="'+PNC+'" class="pwk-sep" style="padding:3px 4px;text-align:center;">'
+        +'<div class="pdate-inputs">'
+        +'<span class="pdate-label">จ่าย</span>'
         +piDate('week',_ws?_ws.id:'_',w,'payDate',_wst.payDate)
-        +'<div style="font-size:10px;color:#6b7280;text-align:center;margin-top:2px;">ตั้งแต่–ถึง</div>'
+        +'<span class="pdate-label">ตั้งแต่</span>'
         +piDate('week',_ws?_ws.id:'_',w,'periodFrom',_wst.periodFrom)
+        +'<span class="pdate-label">ถึง</span>'
         +piDate('week',_ws?_ws.id:'_',w,'periodTo',_wst.periodTo)
         +'</div></td>';
     }
@@ -433,20 +458,22 @@ function renderPIBody(){
     html+='<tr class="pdate-row"><td class="pcol-name" style="color:#94a3b8;font-size:11px;">วันที่จ่าย<br>ช่วงเวลา</td>';
     // Week 0 — ไม่มี PayDate แค่ช่วงเวลา
     var _me=mEmp[0]?pWState[0][mEmp[0].id]:{periodFrom:'',periodTo:''};
-    html+='<td class="pwk-sep" style="vertical-align:top;padding:4px 2px;">'
-      +'<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">'
-      +'<div style="font-size:10px;color:#9ca3af;text-align:center;">เศษ (ไม่จ่าย)</div>'
+    html+='<td class="pwk-sep" style="padding:3px 4px;text-align:center;">'
+      +'<div class="pdate-inputs">'
+      +'<span class="pdate-label" style="color:#9ca3af;">เศษ/ไม่จ่าย</span>'
       +piDate('week',mEmp[0]?mEmp[0].id:'_',0,'periodFrom',_me.periodFrom)
+      +'<span class="pdate-label">ถึง</span>'
       +piDate('week',mEmp[0]?mEmp[0].id:'_',0,'periodTo',_me.periodTo)
       +'</div></td>';
     for(var w=1;w<=P_NUM_WEEKS;w++){
       var _mst=mEmp[0]?pWState[w][mEmp[0].id]:{payDate:'',periodFrom:'',periodTo:''};
-      html+='<td colspan="'+PNC+'" class="pwk-sep" style="vertical-align:top;padding:4px 2px;">'
-        +'<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">'
-        +'<div style="font-size:10px;color:#6b7280;text-align:center;">จ่าย</div>'
+      html+='<td colspan="'+PNC+'" class="pwk-sep" style="padding:3px 4px;text-align:center;">'
+        +'<div class="pdate-inputs">'
+        +'<span class="pdate-label">จ่าย</span>'
         +piDate('week',mEmp[0]?mEmp[0].id:'_',w,'payDate',_mst.payDate)
-        +'<div style="font-size:10px;color:#6b7280;text-align:center;margin-top:2px;">ตั้งแต่–ถึง</div>'
+        +'<span class="pdate-label">ตั้งแต่</span>'
         +piDate('week',mEmp[0]?mEmp[0].id:'_',w,'periodFrom',_mst.periodFrom)
+        +'<span class="pdate-label">ถึง</span>'
         +piDate('week',mEmp[0]?mEmp[0].id:'_',w,'periodTo',_mst.periodTo)
         +'</div></td>';
     }
@@ -495,6 +522,77 @@ function renderPIBody(){
 }
 
 function setPState(w,eId,f,v){ pWState[w][eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
+
+// ─── Month Picker helpers ───
+function pChangeMonth(delta){
+  var picker=document.getElementById('p-month-picker'); if(!picker) return;
+  var d=new Date((picker.value||fmtMonth(new Date()))+'-01');
+  d.setMonth(d.getMonth()+delta);
+  var m=fmtMonth(d); picker.value=m; pOnMonthChange(m);
+}
+function pSetMonthStatus(hasData){
+  var el=document.getElementById('p-month-status'); if(!el) return;
+  if(hasData){ el.textContent='✓ มีข้อมูล'; el.className='pmonth-status has-data'; }
+  else { el.textContent='ยังไม่มีข้อมูล'; el.className='pmonth-status no-data'; }
+}
+async function pOnMonthChange(month){
+  pCurrentMonth=month;
+  initPWState(); // reset ก่อน
+  pSetMonthStatus(false);
+  // โหลดข้อมูลจาก sheet
+  try {
+    var res=await Promise.all([
+      apiCall({action:'getPayroll',month:month}),
+      apiCall({action:'getPayrollEom',month:month})
+    ]);
+    var prRows=res[0].success?(res[0].data||[]):[];
+    var eomRows=res[1].success?(res[1].data||[]):[];
+    var hasData=prRows.length>0||eomRows.length>0;
+    // map PAYROLL rows → pWState
+    prRows.forEach(function(r){
+      var w=Number(r.Week)||0;
+      if(!pWState[w]) return;
+      P_EMPS.forEach(function(emp){
+        if(emp.id!==r.UserID) return;
+        if(emp.type==='fixed') return;
+        pWState[w][emp.id]={
+          days:Number(r.Days)||0, otHours:Number(r.OTHours)||0,
+          bonusExtra:Number(r.BonusExtra)||0, water:Number(r.Water)||0,
+          sso:Number(r.SSO)||0, deductNow:Number(r.DeductNow)||0,
+          penalty:Number(r.Penalty)||0,
+          payDate:r.PayDate||'', periodFrom:r.PeriodFrom||'', periodTo:r.PeriodTo||'',
+          _id:r.PayrollID||''
+        };
+      });
+    });
+    // map PAYROLL_EOM rows → pEomState / pFixedState
+    eomRows.forEach(function(r){
+      P_EMPS.forEach(function(emp){
+        if(emp.id!==r.UserID) return;
+        if(emp.type==='fixed'){
+          pFixedState[emp.id]={
+            salary:emp.fixPerWeek||0,
+            bonusExtra:Number(r.Bonus)||0,
+            deductLump:Number(r.DeductLump)||0,
+            sso:Number(r.SSO)||0,
+            payDate:r.PayDate||'', periodFrom:r.PeriodFrom||'', periodTo:r.PeriodTo||'',
+            _id:r.EomID||''
+          };
+        } else {
+          pEomState[emp.id]={
+            bonus:Number(r.Bonus)||0,
+            deductLump:Number(r.DeductLump)||0,
+            sso:Number(r.SSO)||0,
+            payDate:r.PayDate||'', periodFrom:r.PeriodFrom||'', periodTo:r.PeriodTo||'',
+            _id:r.EomID||''
+          };
+        }
+      });
+    });
+    pSetMonthStatus(hasData);
+    renderPayrollInputTable();
+  } catch(e){ showToast('โหลดข้อมูลไม่สำเร็จ: '+e.message,'error'); }
+}
 function setPEom(eId,f,v){ pEomState[eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
 function setPFixed(eId,f,v){ pFixedState[eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
 
