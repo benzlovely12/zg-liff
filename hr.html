@@ -261,7 +261,7 @@
         <i class="fa-solid fa-id-card"></i> HR — จัดการพนักงาน
       </div>
       <div class="nav-item" id="nav-users" onclick="showPage('users')">
-        <i class="fa-solid fa-users-gear"></i> ผู้ใช้งานระบบ
+        <i class="fa-solid fa-users-gear"></i> พนักงานในบริษัท
       </div>
     </div>
 
@@ -310,14 +310,14 @@
         <div class="table-card">
           <div class="table-card-header">
             <div class="table-card-title">
-              <i class="fa-solid fa-users-gear" style="color:var(--primary);margin-right:8px;"></i>ผู้ใช้งานระบบ
+              <i class="fa-solid fa-users-gear" style="color:var(--primary);margin-right:8px;"></i>พนักงานในบริษัท
             </div>
           </div>
           <table class="data-table">
             <thead>
               <tr>
                 <th>#</th>
-                <th>ชื่อผู้ใช้งาน</th>
+                <th>รายชื่อพนักงาน</th>
                 <th>บทบาท</th>
                 <th>สถานะ</th>
                 <th>ประเภทจ่าย</th>
@@ -419,7 +419,7 @@ function showPage(page) {
   if (pageEl) pageEl.classList.add('active');
   if (navEl)  navEl.classList.add('active');
 
-  const titles = { employees: 'HR — จัดการพนักงาน', users: 'ผู้ใช้งานระบบ', 'payroll-input': 'กรอกข้อมูลรายสัปดาห์', 'payroll-weekly': 'สรุปรายสัปดาห์', 'payroll-monthly': 'สรุปรายเดือน' };
+  const titles = { employees: 'HR — จัดการพนักงาน', users: 'พนักงานในบริษัท', 'payroll-input': 'กรอกข้อมูลรายสัปดาห์', 'payroll-weekly': 'สรุปรายสัปดาห์', 'payroll-monthly': 'สรุปรายเดือน' };
   document.getElementById('topbarTitle').textContent = titles[page] || '';
 
   if (page === 'users') loadUsers();
