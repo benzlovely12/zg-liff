@@ -465,9 +465,10 @@
         <div class="form-group">
           <label>ประเภทการจ่าย</label>
           <select class="form-control" id="um_payType" onchange="togglePayFields()">
-            <option value="none">ไม่ระบุ (admin/office)</option>
+            <option value="none">รายเดือน (เงินเดือนปกติ)</option>
+            <option value="monthly">รายเดือน/เบิกย่อย (มีเบิกรายสัปดาห์)</option>
             <option value="weekly">รายสัปดาห์ (จ่ายครบทุกสัปดาห์)</option>
-            <option value="monthly">รายเดือน (มีเบิกย่อยรายสัปดาห์)</option>
+            <option value="nopay">ไม่จ่าย</option>
           </select>
         </div>
 
@@ -1114,12 +1115,12 @@ function renderUsersTable(users) {
     return;
   }
   const roleLabel = { admin: 'Admin', user: 'Office', accountant: 'ฝ่ายบัญชี', executive: 'ผู้บริหาร', labor: 'แรงงาน' };
-  const payLabel  = { weekly: 'รายสัปดาห์', monthly: 'รายเดือน', none: '' };
-  const payColor  = { weekly: 'background:#dbeafe;color:#1d4ed8;', monthly: 'background:#ede9fe;color:#6d28d9;', none: '' };
+  const payLabel  = { weekly: 'รายสัปดาห์', monthly: 'รายเดือน/เบิกย่อย', none: 'รายเดือน', nopay: 'ไม่จ่าย' };
+  const payColor  = { weekly: 'background:#dbeafe;color:#1d4ed8;', monthly: 'background:#ede9fe;color:#6d28d9;', none: 'background:#dcfce7;color:#166534;', nopay: 'background:#fee2e2;color:#dc2626;' };
   const dash = '<span style="opacity:.3;font-size:12px;">—</span>';
   tbody.innerHTML = users.map((u, i) => {
     const pt = u.PayType || 'none';
-    const isLabor = pt !== 'none';
+    const isLabor = pt !== 'nopay';
     return `
     <tr draggable="true" data-uid="${u.UserID}" data-idx="${i}"
         ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dragDrop(event)"
@@ -1190,9 +1191,9 @@ function initDragDrop() {
 
 function togglePayFields() {
   const pt = document.getElementById('um_payType').value;
-  document.getElementById('um_weeklyFields').style.display  = pt === 'weekly'  ? '' : 'none';
-  document.getElementById('um_monthlyFields').style.display = pt === 'monthly' ? '' : 'none';
-  document.getElementById('um_sharedPayFields').style.display = pt === 'none'  ? 'none' : '';
+  document.getElementById('um_weeklyFields').style.display    = pt === 'weekly'  ? '' : 'none';
+  document.getElementById('um_monthlyFields').style.display   = pt === 'monthly' ? '' : 'none';
+  document.getElementById('um_sharedPayFields').style.display = (pt === 'none' || pt === 'nopay') ? 'none' : '';
 }
 
 function openUserModal(userId) {

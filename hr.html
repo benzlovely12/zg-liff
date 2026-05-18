@@ -321,11 +321,6 @@
                 <th>บทบาท</th>
                 <th>สถานะ</th>
                 <th>ประเภทจ่าย</th>
-                <th>ค่าแรง/วัน</th>
-                <th>Fix/สัปดาห์</th>
-                <th>พิเศษ/วัน</th>
-                <th>หัก/วันหยุด</th>
-                <th>ส.ป.ส./เดือน</th>
                 <th><i class="fa-brands fa-line" style="color:#06C755;"></i> LINE</th>
               </tr>
             </thead>
@@ -457,11 +452,10 @@ function renderUsers(users) {
     tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--gray-400);">ยังไม่มีผู้ใช้งาน</td></tr>';
     return;
   }
-  const PAY_LABEL = { weekly: 'รายสัปดาห์', monthly: 'รายเดือน', none: '-' };
-  const PAY_COLOR = { weekly: 'background:#dbeafe;color:#1d4ed8;', monthly: 'background:#ede9fe;color:#6d28d9;', none: '' };
+  const PAY_LABEL = { weekly: 'รายสัปดาห์', monthly: 'รายเดือน/เบิกย่อย', none: 'รายเดือน', nopay: 'ไม่จ่าย' };
+  const PAY_COLOR = { weekly: 'background:#dbeafe;color:#1d4ed8;', monthly: 'background:#ede9fe;color:#6d28d9;', none: 'background:#dcfce7;color:#166534;', nopay: 'background:#fee2e2;color:#dc2626;' };
   tbody.innerHTML = users.map((u, i) => {
     const pt = u.PayType || 'none';
-    const isLabor = pt !== 'none';
     return `
     <tr>
       <td style="color:var(--gray-400);">${i + 1}</td>
@@ -478,13 +472,8 @@ function renderUsers(users) {
         </span>
       </td>
       <td>
-        ${isLabor ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;${PAY_COLOR[pt]}">${PAY_LABEL[pt]}</span>` : '<span style="opacity:.4;font-size:12px;">—</span>'}
+        <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;${PAY_COLOR[pt]}">${PAY_LABEL[pt]}</span>
       </td>
-      <td style="font-size:13px;text-align:right;">${pt==='weekly' && u.DailyRate ? Number(u.DailyRate).toLocaleString() : '<span style="opacity:.3;">—</span>'}</td>
-      <td style="font-size:13px;text-align:right;">${pt==='monthly' && u.FixWeek ? Number(u.FixWeek).toLocaleString() : '<span style="opacity:.3;">—</span>'}</td>
-      <td style="font-size:13px;text-align:right;">${isLabor && u.SpecialRate ? Number(u.SpecialRate).toLocaleString() : '<span style="opacity:.3;">—</span>'}</td>
-      <td style="font-size:13px;text-align:right;">${pt==='monthly' && u.DeductPerDay ? Number(u.DeductPerDay).toLocaleString() : '<span style="opacity:.3;">—</span>'}</td>
-      <td style="font-size:13px;text-align:right;">${isLabor && u.SSO ? Number(u.SSO).toLocaleString() : '<span style="opacity:.3;">—</span>'}</td>
       <td style="font-size:13px;color:${u.LineUserID ? '#06C755' : 'var(--gray-400)'};">
         ${u.LineUserID ? '<i class="fa-brands fa-line"></i> เชื่อมแล้ว' : '<span style="opacity:.5;">—</span>'}
       </td>
@@ -549,10 +538,14 @@ async function loadPayrollEmps() {
   try {
     const res = await apiCall({ action: 'getUsers' });
     if (res.success) {
-      P_EMPS = (res.data || []).filter(u =>
-        (u.PayType === 'weekly' || u.PayType === 'monthly') && u.Status === 'active'
-      ).map(u => ({
-        id: u.UserID, name: u.Name, type: u.PayType,
+      P_EMPS = (res.data || []).filter(u => {
+        const pt = u.PayType || 'none';
+        // แสดงในตาราง payroll เฉพาะ weekly, monthly, none(รายเดือน) ยกเว้น nopay
+        return pt === 'weekly' || pt === 'monthly' || pt === 'none';
+      }).map(u => ({
+        id: u.UserID, name: u.Name,
+        // none = รายเดือน (ไม่มีเบิกย่อย) ใช้ type='monthly' เพื่อคำนวณเหมือนกัน
+        type: (u.PayType === 'weekly') ? 'weekly' : 'monthly',
         dayRate: Number(u.DailyRate) || 0,
         specialRate: Number(u.SpecialRate) || 0,
         fixPerWeek: Number(u.FixWeek) || 0,
