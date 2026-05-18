@@ -87,6 +87,7 @@
     .pot-note { font-size: 10px; color: #6d28d9; font-weight: 600; display: block; margin-top: 2px; }
     .psso-sum { font-size: 11px; color: #92400e; font-weight: 700; }
     input.pi-days   { width:52px; border:1.5px solid #16a34a; background:#dcfce7; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
+    input.pi-date   { width:90px; padding:2px 4px; font-size:11px; border:1px solid #d1d5db; border-radius:4px; color:#374151; background:#fff; font-family:inherit; }
     input.pi-ot     { width:52px; border:1.5px solid #a78bfa; background:#faf5ff; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
     input.pi-bonus  { width:58px; border:1.5px solid #16a34a; background:#dcfce7; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
     input.pi-water  { width:58px; border:1.5px solid #0ea5e9; background:#f0f9ff; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
@@ -178,14 +179,9 @@
             <div class="save-bar"><button class="btn-save" onclick="savePayrollData()" id="btnSave"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button></div>
           </div>
           <div style="padding:16px 20px;">
-            <div class="pdp-panel">
-              <span class="pdp-label">สัปดาห์ที่ 1–4</span>
-              <div class="pdp-group"><label>สัปดาห์ที่ 1 เริ่ม (พฤหัส)</label><input type="date" id="pw1-start" onchange="onPW1Change()"></div>
-              <div class="pdp-divider"></div>
-              <span class="pdp-label">สัปดาห์ที่ 0 (เศษเดือนก่อน)</span>
-              <div class="pdp-group"><label>เริ่ม</label><input type="date" id="pw0-start" onchange="onPW0Change()"></div>
-              <span class="pdp-sep">–</span>
-              <div class="pdp-group"><label>สิ้นสุด (เสาร์)</label><input type="date" id="pw0-end" onchange="onPW0Change()"></div>
+            <div class="pdp-panel" style="background:#f0fdf4;border:1px solid #bbf7d0;padding:10px 16px;font-size:13px;color:#166534;">
+              <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
+              กรอกวันที่จ่าย (PayDate) และช่วงเวลา (ตั้งแต่–ถึง) ในแต่ละสัปดาห์ด้านล่างตารางของแต่ละพนักงาน
             </div>
             <div class="plegend">
               <div class="plegend-item"><div class="plegend-dot" style="background:#16a34a;"></div>รายได้</div>
@@ -293,7 +289,7 @@ function showToast(msg, type) {
 // ============================================================
 var P_EMPS = [], P_NUM_WEEKS = 4, P_MAX_DAYS = 6;
 var pWState = [], pEomState = {}, pFixedState = {};
-var pW0Start = null, pW0End = null, pW1Start = null, pCurrentMonth = '';
+var pCurrentMonth = '';
 
 async function initPayroll(page) {
   if (P_EMPS.length === 0) await loadPayrollEmps();
@@ -317,20 +313,16 @@ async function loadPayrollEmps() {
   } catch(e) { showToast('โหลดข้อมูลพนักงานไม่สำเร็จ','error'); }
 }
 function initPayrollDates() {
-  var today=new Date(), thu=new Date(today), day=today.getDay();
-  thu.setDate(today.getDate()+((day<=4)?(4-day):(4-day+7)));
-  if(!pW1Start){ pW1Start=new Date(thu); document.getElementById('pw1-start').value=fmtISO(pW1Start); }
-  if(!pW0End){ pW0End=new Date(pW1Start); pW0End.setDate(pW1Start.getDate()-2); document.getElementById('pw0-end').value=fmtISO(pW0End); }
-  if(!pW0Start){ pW0Start=new Date(pW0End); pW0Start.setDate(pW0End.getDate()-5); document.getElementById('pw0-start').value=fmtISO(pW0Start); }
-  pCurrentMonth=fmtMonth(pW1Start); initPWState();
+  if(!pCurrentMonth) pCurrentMonth=fmtMonth(new Date());
+  initPWState();
 }
 function initPWState() {
   pWState=[];
   for(var w=0;w<=P_NUM_WEEKS;w++){
-    var ws={}; P_EMPS.forEach(function(e){ ws[e.id]={days:0,otHours:0,bonusExtra:0,water:0,sso:0,deductNow:0,penalty:0,_id:''}; }); pWState.push(ws);
+    var ws={}; P_EMPS.forEach(function(e){ ws[e.id]={days:0,otHours:0,bonusExtra:0,water:0,sso:0,deductNow:0,penalty:0,payDate:'',periodFrom:'',periodTo:'',_id:''}; }); pWState.push(ws);
   }
   pEomState={};
-  P_EMPS.forEach(function(e){ pEomState[e.id]={bonus:e.monthBonus||0,deductLump:0,sso:(e.type==='monthly')?(e.sso||0):0,_id:''}; });
+  P_EMPS.forEach(function(e){ pEomState[e.id]={bonus:e.monthBonus||0,deductLump:0,sso:(e.type==='monthly')?(e.sso||0):0,payDate:'',periodFrom:'',periodTo:'',_id:''}; });
   pFixedState={};
   P_EMPS.filter(function(e){return e.type==='fixed';}).forEach(function(e){
     pFixedState[e.id]={salary:e.fixPerWeek||0,bonusExtra:e.monthBonus||0,sso:e.sso||0,deductLump:0,_id:''};
@@ -341,10 +333,6 @@ function fmtISO(d){ return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMon
 function fmtD(d){ var mm=d.getMonth()+1,dd=d.getDate(); return (dd<10?'0':'')+dd+'/'+(mm<10?'0':'')+mm; }
 function fmtMonth(d){ return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1); }
 function todayMonth(){ return fmtMonth(new Date()); }
-function pWkStart(w){ var d=new Date(pW1Start); d.setDate(pW1Start.getDate()+(w-1)*7); return d; }
-function pWkEnd(w){ var d=pWkStart(w); d.setDate(d.getDate()+6); return d; }
-function pMthStart(w){ var d=new Date(pW0End); d.setDate(pW0End.getDate()+2+(w-1)*7); return d; }
-function pMthEnd(w){ var d=pMthStart(w); d.setDate(d.getDate()+5); return d; }
 function pOTRate(emp){ return Math.floor(emp.dayRate/8*1.5); }
 function pCalcWeekly(emp,st){ return {net:Math.max(0,(st.days||0)*emp.dayRate+(st.otHours||0)*pOTRate(emp)+(st.bonusExtra||0)-(st.water||0)-(st.sso||0)-(st.deductNow||0))}; }
 function pCalcMonthlyWeek(emp,st){
@@ -368,7 +356,7 @@ function pWeeklySSOTotal(emp){ var t=0; for(var w=1;w<=P_NUM_WEEKS;w++) t+=(pWSt
 var PCOLS=['วันทำงาน','OT ชม.','รายได้พิเศษ','น้ำ/ไฟ','สปส.','หักค่าใช้จ่าย','โทษ','รับ/สัปดาห์'];
 var PNC=PCOLS.length;
 
-function renderPayrollInputTable(){ if(!pW1Start) return; renderPIHead(); renderPIBody(); }
+function renderPayrollInputTable(){ renderPIHead(); renderPIBody(); }
 
 function renderPIHead(){
   var ghCls=['','pgh-1','pgh-2','pgh-3','pgh-4'], shCls=['','psh-1','psh-2','psh-3','psh-4'];
@@ -387,6 +375,12 @@ function renderPIHead(){
 function piI(cls,eId,w,f,v){ return '<input type="number" min="0" class="'+cls+'" value="'+(v||0)+'" onchange="setPState('+w+',\''+eId+'\',\''+f+'\',this.value)">'; }
 function piE(eId,f,v,cls){ return '<input type="number" min="0" class="'+(cls||'pi-eom')+'" value="'+(v||0)+'" onchange="setPEom(\''+eId+'\',\''+f+'\',this.value)">'; }
 function piF(eId,f,v,cls){ return '<input type="number" min="0" class="'+(cls||'pi-eom')+'" value="'+(v||0)+'" onchange="setPFixed(\''+eId+'\',\''+f+'\',this.value)">'; }
+function piDate(scope,eId,w,f,v){ return '<input type="date" class="pi-date" value="'+(v||'')+'" onchange="setPDate(\''+scope+'\',\''+eId+'\','+w+',\''+f+'\',this.value)">'; }
+function setPDate(scope,eId,w,f,v){
+  if(scope==='week') pWState[w][eId][f]=v;
+  else if(scope==='eom') pEomState[eId][f]=v;
+  // ไม่ re-render ทั้งตาราง (เพื่อไม่ให้ input focus หาย)
+}
 
 function renderPIBody(){
   var html='', SPAN=2+P_NUM_WEEKS*PNC+4+1;
@@ -395,9 +389,20 @@ function renderPIBody(){
   var wEmp=P_EMPS.filter(function(e){return e.type==='weekly';});
   if(wEmp.length){
     html+='<tr class="psec-row"><td colspan="'+SPAN+'">👷 พนักงานรายวัน · นับ พฤ–พุธ</td></tr>';
-    html+='<tr class="pdate-row"><td class="pcol-name" style="color:#94a3b8">ช่วงเวลา</td><td class="pwk-sep">—</td>';
-    for(var w=1;w<=P_NUM_WEEKS;w++) html+='<td colspan="'+PNC+'" class="pwk-sep">'+fmtD(pWkStart(w))+' – '+fmtD(pWkEnd(w))+'</td>';
-    html+='<td colspan="4" class="pwk-sep">—</td><td>—</td></tr>';
+    html+='<tr class="pdate-row"><td class="pcol-name" style="color:#94a3b8;font-size:11px;">วันที่จ่าย<br>ช่วงเวลา</td><td class="pwk-sep pna">—</td>';
+    for(var w=1;w<=P_NUM_WEEKS;w++){
+      var _ws=P_EMPS.filter(function(e){return e.type==='weekly';})[0];
+      var _wst=_ws?pWState[w][_ws.id]:{payDate:'',periodFrom:'',periodTo:''};
+      html+='<td colspan="'+PNC+'" class="pwk-sep" style="vertical-align:top;padding:4px 2px;">'
+        +'<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">'
+        +'<div style="font-size:10px;color:#6b7280;text-align:center;">จ่าย</div>'
+        +piDate('week',_ws?_ws.id:'_',w,'payDate',_wst.payDate)
+        +'<div style="font-size:10px;color:#6b7280;text-align:center;margin-top:2px;">ตั้งแต่–ถึง</div>'
+        +piDate('week',_ws?_ws.id:'_',w,'periodFrom',_wst.periodFrom)
+        +piDate('week',_ws?_ws.id:'_',w,'periodTo',_wst.periodTo)
+        +'</div></td>';
+    }
+    html+='<td colspan="4" class="pwk-sep pna">—</td><td class="pna">—</td></tr>';
     wEmp.forEach(function(emp){
       html+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div><div class="pmeta">฿'+emp.dayRate+'/วัน</div></td>';
       html+='<td class="pna pwk-sep">—</td>';
@@ -425,10 +430,27 @@ function renderPIBody(){
   var mEmp=P_EMPS.filter(function(e){return e.type==='monthly';});
   if(mEmp.length){
     html+='<tr class="psec-row"><td colspan="'+SPAN+'">📋 พนักงานรายเดือน/เบิกย่อย · นับ จ–ส</td></tr>';
-    html+='<tr class="pdate-row"><td class="pcol-name" style="color:#94a3b8">ช่วงเวลา</td>';
-    html+='<td class="pwk-sep">'+fmtD(pW0Start)+' – '+fmtD(pW0End)+'</td>';
-    for(var w=1;w<=P_NUM_WEEKS;w++) html+='<td colspan="'+PNC+'" class="pwk-sep">'+fmtD(pMthStart(w))+' – '+fmtD(pMthEnd(w))+'</td>';
-    html+='<td colspan="4" class="pwk-sep">—</td><td>—</td></tr>';
+    html+='<tr class="pdate-row"><td class="pcol-name" style="color:#94a3b8;font-size:11px;">วันที่จ่าย<br>ช่วงเวลา</td>';
+    // Week 0 — ไม่มี PayDate แค่ช่วงเวลา
+    var _me=mEmp[0]?pWState[0][mEmp[0].id]:{periodFrom:'',periodTo:''};
+    html+='<td class="pwk-sep" style="vertical-align:top;padding:4px 2px;">'
+      +'<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">'
+      +'<div style="font-size:10px;color:#9ca3af;text-align:center;">เศษ (ไม่จ่าย)</div>'
+      +piDate('week',mEmp[0]?mEmp[0].id:'_',0,'periodFrom',_me.periodFrom)
+      +piDate('week',mEmp[0]?mEmp[0].id:'_',0,'periodTo',_me.periodTo)
+      +'</div></td>';
+    for(var w=1;w<=P_NUM_WEEKS;w++){
+      var _mst=mEmp[0]?pWState[w][mEmp[0].id]:{payDate:'',periodFrom:'',periodTo:''};
+      html+='<td colspan="'+PNC+'" class="pwk-sep" style="vertical-align:top;padding:4px 2px;">'
+        +'<div style="display:flex;flex-direction:column;gap:2px;align-items:center;">'
+        +'<div style="font-size:10px;color:#6b7280;text-align:center;">จ่าย</div>'
+        +piDate('week',mEmp[0]?mEmp[0].id:'_',w,'payDate',_mst.payDate)
+        +'<div style="font-size:10px;color:#6b7280;text-align:center;margin-top:2px;">ตั้งแต่–ถึง</div>'
+        +piDate('week',mEmp[0]?mEmp[0].id:'_',w,'periodFrom',_mst.periodFrom)
+        +piDate('week',mEmp[0]?mEmp[0].id:'_',w,'periodTo',_mst.periodTo)
+        +'</div></td>';
+    }
+    html+='<td colspan="4" class="pwk-sep pna">—</td><td class="pna">—</td></tr>';
     mEmp.forEach(function(emp){
       var st0=pWState[0][emp.id];
       html+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div><div class="pmeta">฿'+emp.dayRate+'/วัน +฿'+emp.specialRate+' | Fix฿'+emp.fixPerWeek+'/สัปดาห์</div></td>';
@@ -475,39 +497,30 @@ function renderPIBody(){
 function setPState(w,eId,f,v){ pWState[w][eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
 function setPEom(eId,f,v){ pEomState[eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
 function setPFixed(eId,f,v){ pFixedState[eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
-function onPW1Change(){ var v=document.getElementById('pw1-start').value; if(v) pW1Start=new Date(v+'T00:00:00'); renderPayrollInputTable(); }
-function onPW0Change(){
-  var vs=document.getElementById('pw0-start').value,ve=document.getElementById('pw0-end').value;
-  if(vs) pW0Start=new Date(vs+'T00:00:00');
-  if(ve) pW0End=new Date(ve+'T00:00:00');
-  renderPayrollInputTable();
-}
 
 async function savePayrollData(){
   var btn=document.getElementById('btnSave');
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
   try {
-    var month=pCurrentMonth||fmtMonth(pW1Start||new Date());
-    var w1iso=pW1Start?fmtISO(pW1Start):'', w0siso=pW0Start?fmtISO(pW0Start):'', w0eiso=pW0End?fmtISO(pW0End):'';
+    var month=pCurrentMonth||fmtMonth(new Date());
     for(var w=0;w<=P_NUM_WEEKS;w++){
       for(var i=0;i<P_EMPS.length;i++){
         var emp=P_EMPS[i]; if(emp.type==='fixed') continue;
         var st=pWState[w][emp.id];
-        var wStart=w===0?w0siso:(w===1?w1iso:(pW1Start?(function(ww){var d=new Date(pW1Start);d.setDate(pW1Start.getDate()+(ww-1)*7);return fmtISO(d);})(w):''));
-        var res=await apiCall({action:'savePayroll',PayrollID:st._id||'',UserID:emp.id,Month:month,Week:w,WeekStart:wStart,WeekEnd:(w===0?w0eiso:''),Days:st.days||0,OTHours:st.otHours||0,BonusExtra:st.bonusExtra||0,Water:st.water||0,SSO:st.sso||0,DeductNow:st.deductNow||0,Penalty:st.penalty||0});
+        var res=await apiCall({action:'savePayroll',PayrollID:st._id||'',UserID:emp.id,Month:month,Week:w,PayDate:st.payDate||'',PeriodFrom:st.periodFrom||'',PeriodTo:st.periodTo||'',Days:st.days||0,OTHours:st.otHours||0,BonusExtra:st.bonusExtra||0,Water:st.water||0,SSO:st.sso||0,DeductNow:st.deductNow||0,Penalty:st.penalty||0});
         if(res.success&&res.data&&res.data.PayrollID) st._id=res.data.PayrollID;
       }
     }
     for(var i=0;i<P_EMPS.length;i++){
       var emp=P_EMPS[i]; if(emp.type!=='monthly') continue;
       var es=pEomState[emp.id];
-      var res=await apiCall({action:'savePayrollEom',EomID:es._id||'',UserID:emp.id,Month:month,W0Start:w0siso,W0End:w0eiso,W1Start:w1iso,Bonus:es.bonus||0,DeductLump:es.deductLump||0,SSO:es.sso||0});
+      var res=await apiCall({action:'savePayrollEom',EomID:es._id||'',UserID:emp.id,Month:month,PayDate:es.payDate||'',PeriodFrom:es.periodFrom||'',PeriodTo:es.periodTo||'',Bonus:es.bonus||0,DeductLump:es.deductLump||0,SSO:es.sso||0});
       if(res.success&&res.data&&res.data.EomID) es._id=res.data.EomID;
     }
     for(var i=0;i<P_EMPS.length;i++){
       var emp=P_EMPS[i]; if(emp.type!=='fixed') continue;
       var fs=pFixedState[emp.id];
-      var res=await apiCall({action:'savePayrollEom',EomID:fs._id||'',UserID:emp.id,Month:month,W0Start:'',W0End:'',W1Start:'',Bonus:(fs.salary||0)+(fs.bonusExtra||0),DeductLump:fs.deductLump||0,SSO:fs.sso||0});
+      var res=await apiCall({action:'savePayrollEom',EomID:fs._id||'',UserID:emp.id,Month:month,PayDate:fs.payDate||'',PeriodFrom:fs.periodFrom||'',PeriodTo:fs.periodTo||'',Bonus:(fs.salary||0)+(fs.bonusExtra||0),DeductLump:fs.deductLump||0,SSO:fs.sso||0});
       if(res.success&&res.data&&res.data.EomID) fs._id=res.data.EomID;
     }
     showToast('บันทึกสำเร็จ','success');
