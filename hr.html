@@ -811,12 +811,17 @@ function tpRender(){
   var html='';
   for(var i=0;i<first;i++) html+='<div></div>';
   for(var d=1;d<=dim;d++){
-    var mm=String(_tp.curM+1).padStart(2,'0'), dd=String(d).padStart(2,'0');
-    var iso=_tp.curY+'-'+mm+'-'+dd;
+    var mm=String(_tp.curM+1).padStart(2,'0'),dd2=String(d).padStart(2,'0');
+    var iso=_tp.curY+'-'+mm+'-'+dd2;
     var cls='tp-day'+(iso===_tp.selISO?' tp-sel':'')+(iso===todayISO?' tp-today':'');
-    html+='<div class="'+cls+'" onclick="tpSelect(\"'+iso+'\")">'+ d+'</div>';
+    html+='<div class="'+cls+'" data-iso="'+iso+'">'+d+'</div>';
   }
   grid.innerHTML=html;
+  // bind click ทีเดียวผ่าน event delegation
+  grid.onclick=function(e){
+    var el=e.target.closest('.tp-day');
+    if(el && el.dataset.iso) tpSelect(el.dataset.iso);
+  };
 }
 function tpSelect(iso){
   _tp.selISO=iso;
