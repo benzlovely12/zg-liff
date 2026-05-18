@@ -472,6 +472,18 @@
           </select>
         </div>
 
+        <!-- none fields: รายเดือนปกติ -->
+        <div id="um_noneFields" style="display:none;">
+          <div class="form-group">
+            <label>รายได้/เดือน (บาท)</label>
+            <input type="number" class="form-control" id="um_fixWeek" placeholder="เช่น 15000" min="0" step="500" />
+          </div>
+          <div class="form-group">
+            <label>หัก ส.ป.ส./เดือน (บาท)</label>
+            <input type="number" class="form-control" id="um_sso" placeholder="0 = ไม่หัก" min="0" step="1" />
+          </div>
+        </div>
+
         <!-- weekly fields -->
         <div id="um_weeklyFields" style="display:none;">
           <div class="form-group">
@@ -480,11 +492,11 @@
           </div>
         </div>
 
-        <!-- monthly fields -->
+        <!-- monthly fields: รายเดือน/เบิกย่อย -->
         <div id="um_monthlyFields" style="display:none;">
           <div class="form-group">
             <label>ค่าแรง Fix/สัปดาห์ (บาท)</label>
-            <input type="number" class="form-control" id="um_fixWeek" placeholder="เช่น 1500" min="0" step="100" />
+            <input type="number" class="form-control" id="um_fixWeek2" placeholder="เช่น 1500" min="0" step="100" />
           </div>
           <div class="form-group">
             <label>หักต่อวันที่หยุด (บาท)</label>
@@ -492,7 +504,7 @@
           </div>
         </div>
 
-        <!-- shared fields (weekly + monthly) -->
+        <!-- shared fields (weekly + monthly/เบิกย่อย) -->
         <div id="um_sharedPayFields" style="display:none;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div class="form-group" style="margin-bottom:0;">
@@ -501,7 +513,7 @@
             </div>
             <div class="form-group" style="margin-bottom:0;">
               <label>หัก ส.ป.ส./เดือน (บาท)</label>
-              <input type="number" class="form-control" id="um_sso" placeholder="0 = ไม่หัก" min="0" step="1" />
+              <input type="number" class="form-control" id="um_sso2" placeholder="0 = ไม่หัก" min="0" step="1" />
             </div>
           </div>
         </div>
@@ -1191,9 +1203,10 @@ function initDragDrop() {
 
 function togglePayFields() {
   const pt = document.getElementById('um_payType').value;
+  document.getElementById('um_noneFields').style.display      = pt === 'none'    ? '' : 'none';
   document.getElementById('um_weeklyFields').style.display    = pt === 'weekly'  ? '' : 'none';
   document.getElementById('um_monthlyFields').style.display   = pt === 'monthly' ? '' : 'none';
-  document.getElementById('um_sharedPayFields').style.display = (pt === 'none' || pt === 'nopay') ? 'none' : '';
+  document.getElementById('um_sharedPayFields').style.display = (pt === 'weekly' || pt === 'monthly') ? '' : 'none';
 }
 
 function openUserModal(userId) {
@@ -1207,26 +1220,34 @@ function openUserModal(userId) {
   document.getElementById('um_payType').value     = 'none';
   document.getElementById('um_dailyRate').value   = '';
   document.getElementById('um_fixWeek').value     = '';
+  document.getElementById('um_fixWeek2').value    = '';
   document.getElementById('um_deductPerDay').value= '';
   document.getElementById('um_specialRate').value = '';
   document.getElementById('um_sso').value         = '';
+  document.getElementById('um_sso2').value        = '';
   document.getElementById('um_empCode').value     = '';
   togglePayFields();
 
   if (userId) {
     const u = ALL_USERS.find(x => x.UserID === userId);
     if (u) {
+      const pt = u.PayType || 'none';
       document.getElementById('um_userId').value      = u.UserID;
       document.getElementById('um_name').value        = u.Name || '';
       document.getElementById('um_role').value        = u.Role || 'user';
       document.getElementById('um_status').value      = u.Status || 'active';
       document.getElementById('um_lineUserId').value  = u.LineUserID || '';
-      document.getElementById('um_payType').value     = u.PayType || 'none';
+      document.getElementById('um_payType').value     = pt;
       document.getElementById('um_dailyRate').value   = u.DailyRate || '';
-      document.getElementById('um_fixWeek').value     = u.FixWeek || '';
+      // none = รายเดือน ใช้ fixWeek เก็บรายได้/เดือน
+      document.getElementById('um_fixWeek').value     = pt === 'none' ? (u.FixWeek || '') : '';
+      // monthly/เบิกย่อย ใช้ fixWeek2
+      document.getElementById('um_fixWeek2').value    = pt === 'monthly' ? (u.FixWeek || '') : '';
       document.getElementById('um_deductPerDay').value= u.DeductPerDay || '';
       document.getElementById('um_specialRate').value = u.SpecialRate || '';
-      document.getElementById('um_sso').value         = u.SSO || '';
+      // none ใช้ sso, weekly/monthly ใช้ sso2
+      document.getElementById('um_sso').value         = pt === 'none' ? (u.SSO || '') : '';
+      document.getElementById('um_sso2').value        = (pt === 'weekly' || pt === 'monthly') ? (u.SSO || '') : '';
       document.getElementById('um_empCode').value     = u.EmpCode || '';
       togglePayFields();
     }
@@ -1247,10 +1268,16 @@ async function saveUser() {
   const lineUserId  = document.getElementById('um_lineUserId').value.trim();
   const payType     = document.getElementById('um_payType').value;
   const dailyRate   = parseFloat(document.getElementById('um_dailyRate').value) || 0;
-  const fixWeek     = parseFloat(document.getElementById('um_fixWeek').value) || 0;
+  // FixWeek: none=รายได้/เดือน, monthly/weekly=Fix/สัปดาห์
+  const fixWeek     = payType === 'none'
+    ? (parseFloat(document.getElementById('um_fixWeek').value) || 0)
+    : (parseFloat(document.getElementById('um_fixWeek2').value) || 0);
   const specialRate = parseFloat(document.getElementById('um_specialRate').value) || 0;
   const deductPerDay= parseFloat(document.getElementById('um_deductPerDay').value) || 0;
-  const sso         = parseFloat(document.getElementById('um_sso').value) || 0;
+  // SSO: none ใช้ um_sso, weekly/monthly ใช้ um_sso2
+  const sso         = payType === 'none'
+    ? (parseFloat(document.getElementById('um_sso').value) || 0)
+    : (parseFloat(document.getElementById('um_sso2').value) || 0);
   const empCode     = document.getElementById('um_empCode').value.trim();
 
   const payload = { Name: name, Role: role, Status: status, LineUserID: lineUserId,

@@ -513,7 +513,8 @@ var P_MAX_DAYS  = 6;    // hardcode
 
 // state[w][userId] = { days,otHours,bonusExtra,water,sso,deductNow,penalty, _id }
 var pWState = [];
-var pEomState = {}; // [userId] = { bonus,deductLump,sso, _id }
+var pEomState = {};   // [userId] = { bonus,deductLump,sso, _id }  — monthly/เบิกย่อย
+var pFixedState = {}; // [userId] = { salary,bonusExtra,sso,deductLump,_id } — รายเดือนปกติ
 var pW0Start = null, pW0End = null, pW1Start = null;
 var pCurrentMonth = '';
 
@@ -540,18 +541,19 @@ async function loadPayrollEmps() {
     if (res.success) {
       P_EMPS = (res.data || []).filter(u => {
         const pt = u.PayType || 'none';
-        // แสดงในตาราง payroll เฉพาะ weekly, monthly, none(รายเดือน) ยกเว้น nopay
+        // แสดงในตาราง payroll เฉพาะ weekly, monthly, none ยกเว้น nopay
         return pt === 'weekly' || pt === 'monthly' || pt === 'none';
       }).map(u => ({
         id: u.UserID, name: u.Name,
-        // none = รายเดือน (ไม่มีเบิกย่อย) ใช้ type='monthly' เพื่อคำนวณเหมือนกัน
-        type: (u.PayType === 'weekly') ? 'weekly' : 'monthly',
-        dayRate: Number(u.DailyRate) || 0,
-        specialRate: Number(u.SpecialRate) || 0,
-        fixPerWeek: Number(u.FixWeek) || 0,
+        payType: u.PayType || 'none', // เก็บ payType จริงไว้แยก section
+        // weekly=รายวัน, monthly=รายเดือน/เบิกย่อย, none=รายเดือนปกติ
+        type: (u.PayType === 'weekly') ? 'weekly' : (u.PayType === 'monthly' ? 'monthly' : 'fixed'),
+        dayRate:         Number(u.DailyRate) || 0,
+        specialRate:     Number(u.SpecialRate) || 0,
+        fixPerWeek:      Number(u.FixWeek) || 0,   // monthly/เบิกย่อย: fix/สัปดาห์, none: รายได้/เดือน
         deductPerAbsent: Number(u.DeductPerDay) || 0,
-        sso: Number(u.SSO) || 0,
-        maxDays: P_MAX_DAYS
+        sso:             Number(u.SSO) || 0,        // default SSO จาก user (ใส่เป็น default เท่านั้น)
+        maxDays:         P_MAX_DAYS
       }));
     }
   } catch(e) { showToast('โหลดข้อมูลพนักงานไม่สำเร็จ', 'error'); }
@@ -598,6 +600,17 @@ function initPWState() {
   pEomState = {};
   P_EMPS.forEach(function(e) {
     pEomState[e.id] = { bonus:0, deductLump:0, sso:0, _id:'' };
+  });
+  // pFixedState: รายเดือนปกติ (PayType=none) — ดึง default จาก user แต่ยังไม่ save
+  pFixedState = {};
+  P_EMPS.filter(function(e){ return e.type === 'fixed'; }).forEach(function(e) {
+    pFixedState[e.id] = {
+      salary:    e.fixPerWeek,  // รายได้/เดือน (default จาก FixWeek)
+      bonusExtra:0,             // พิเศษ/เดือน (ก้อน)
+      sso:       e.sso,         // ส.ป.ส. (default จาก SSO ใน user)
+      deductLump:0,             // หักค่าใช้จ่าย (ก้อน)
+      _id:''
+    };
   });
 }
 
@@ -693,6 +706,10 @@ function piEom(eId,field,val,cls){
   return '<input type="number" min="0" class="'+(cls||'pi-eom')+'" value="'+(val||0)+'" onchange="setPEom(\''+eId+'\',\''+field+'\',this.value)">';
 }
 
+function piFixed(eId,field,val,cls){
+  return '<input type="number" min="0" class="'+(cls||'pi-eom')+'" value="'+(val||0)+'" onchange="setPFixed(\''+eId+'\',\''+field+'\',this.value)">';
+}
+
 function renderPIBody() {
   var html='';
   var SPAN=2+P_NUM_WEEKS*PNC+4+1;
@@ -727,10 +744,10 @@ function renderPIBody() {
     });
   }
 
-  // ─ MONTHLY ─
+  // ─ MONTHLY/เบิกย่อย ─
   var mEmp = P_EMPS.filter(function(e){return e.type==='monthly';});
   if(mEmp.length){
-    html+='<tr class="psec-row"><td colspan="'+SPAN+'">📋 พนักงานรายเดือน &nbsp;·&nbsp; นับ จ–ส</td></tr>';
+    html+='<tr class="psec-row"><td colspan="'+SPAN+'">📋 พนักงานรายเดือน/เบิกย่อย &nbsp;·&nbsp; นับ จ–ส</td></tr>';
     html+='<tr class="pdate-row"><td class="pcol-name" style="color:#94a3b8">ช่วงเวลา</td>';
     html+='<td class="pwk-sep">'+fmtD(pW0Start)+' – '+fmtD(pW0End)+'</td>';
     for(var w=1;w<=P_NUM_WEEKS;w++) html+='<td colspan="'+PNC+'" class="pwk-sep">'+fmtD(pMthStart(w))+' – '+fmtD(pMthEnd(w))+'</td>';
@@ -761,12 +778,45 @@ function renderPIBody() {
       html+='</tr>';
     });
   }
+
+  // ─ FIXED: รายเดือนปกติ (PayType=none) ─
+  var fEmp = P_EMPS.filter(function(e){return e.type==='fixed';});
+  if(fEmp.length){
+    // section header — colspan แบบย่อ ไม่มี weekly columns
+    html+='<tr class="psec-row"><td colspan="'+SPAN+'">🗂️ พนักงานรายเดือน &nbsp;·&nbsp; จ่ายสิ้นเดือน</td></tr>';
+    // sub-header row
+    html+='<tr style="background:#fefce8;">';
+    html+='<th class="pcol-name-h" style="text-align:left;padding:7px 12px;font-size:12px;">ชื่อ-นามสกุล</th>';
+    html+='<th colspan="'+( 1+P_NUM_WEEKS*PNC )+'"></th>'; // ช่องว่างแทน weekly cols
+    html+='<th class="psh-eom pwk-sep" style="min-width:80px;">รายได้/เดือน</th>';
+    html+='<th class="psh-eom">พิเศษ/เดือน</th>';
+    html+='<th class="psh-eom">หักค่าใช้จ่าย</th>';
+    html+='<th class="psh-eom">ส.ป.ส.</th>';
+    html+='<th class="pgh-0">รับสิ้นเดือน</th>';
+    html+='</tr>';
+    fEmp.forEach(function(emp){
+      var fs=pFixedState[emp.id];
+      var net=Math.max(0,(fs.salary||0)+(fs.bonusExtra||0)-(fs.deductLump||0)-(fs.sso||0));
+      html+='<tr>';
+      html+='<td class="pcol-name"><div class="pname">'+emp.name+'</div><div class="pmeta">เงินเดือน ฿'+(emp.fixPerWeek||0).toLocaleString()+'/เดือน</div></td>';
+      // ช่องว่างแทน weekly/monthly cols
+      html+='<td colspan="'+(1+P_NUM_WEEKS*PNC)+'" class="pna" style="background:#fefce8;border-left:2px solid var(--gray-300);">—</td>';
+      // 4 ช่อง EOM + ยอดรับ
+      html+='<td class="pwk-sep">'+piFixed(emp.id,'salary',fs.salary,'pi-eom')+'</td>';
+      html+='<td>'+piFixed(emp.id,'bonusExtra',fs.bonusExtra,'pi-bonus')+'</td>';
+      html+='<td>'+piFixed(emp.id,'deductLump',fs.deductLump,'pi-deduct')+'</td>';
+      html+='<td>'+piFixed(emp.id,'sso',fs.sso,'pi-eom-sso')+'</td>';
+      html+='<td class="pres-green">฿'+net.toLocaleString()+'</td>';
+      html+='</tr>';
+    });
+  }
   document.getElementById('pi-body').innerHTML = html;
 }
 
 // ── STATE SETTERS ──
 function setPState(w,eId,f,v){ pWState[w][eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
 function setPEom(eId,f,v){ pEomState[eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
+function setPFixed(eId,f,v){ pFixedState[eId][f]=parseFloat(v)||0; renderPayrollInputTable(); }
 function onPW1Change(){ var v=document.getElementById('pw1-start').value; if(v){pW1Start=new Date(v+'T00:00:00');} renderPayrollInputTable(); }
 function onPW0Change(){
   var vs=document.getElementById('pw0-start').value, ve=document.getElementById('pw0-end').value;
@@ -802,7 +852,7 @@ async function savePayrollData() {
         if(res.success && res.data && res.data.PayrollID) st._id=res.data.PayrollID;
       }
     }
-    // save EOM
+    // save EOM (monthly/เบิกย่อย)
     for(var i=0;i<P_EMPS.length;i++){
       var emp=P_EMPS[i];
       if(emp.type!=='monthly') continue;
@@ -815,6 +865,25 @@ async function savePayrollData() {
       };
       const res=await apiCall(payload);
       if(res.success && res.data && res.data.EomID) es._id=res.data.EomID;
+    }
+    // save Fixed (รายเดือนปกติ) — บันทึกลง PAYROLL_EOM ด้วย Salary=fixedState.salary
+    for(var i=0;i<P_EMPS.length;i++){
+      var emp=P_EMPS[i];
+      if(emp.type!=='fixed') continue;
+      var fs=pFixedState[emp.id];
+      var payload={
+        action:'savePayrollEom', EomID:fs._id||'',
+        UserID:emp.id, Month:month,
+        W0Start:'', W0End:'', W1Start:'',
+        Bonus:fs.salary||0,         // ใช้ Bonus field เก็บเงินเดือน
+        DeductLump:fs.deductLump||0,
+        SSO:fs.sso||0
+      };
+      // BonusExtra เก็บพิเศษ/เดือน — ถ้า backend รองรับ Bonus2 ให้เพิ่ม field ทีหลัง
+      // ตอนนี้ใช้ Bonus=salary+bonusExtra เพื่อให้ออกในรายงานถูก
+      payload.Bonus = (fs.salary||0) + (fs.bonusExtra||0);
+      const res=await apiCall(payload);
+      if(res.success && res.data && res.data.EomID) fs._id=res.data.EomID;
     }
     showToast('บันทึกสำเร็จ', 'success');
   } catch(e) {
