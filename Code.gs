@@ -34,8 +34,8 @@ const TEXT_COLUMNS = {
   PART_ITEMS:    [],
   LEAVE:         ['LeaveID'],
   OT:            ['OTID'],
-  PAYROLL:       ['PayrollID','UserID'],
-  PAYROLL_EOM:   ['EomID','UserID'],
+  PAYROLL:       ['PayrollID','UserID','PayDate','PeriodFrom','PeriodTo'],
+  PAYROLL_EOM:   ['EomID','UserID','PayDate','PeriodFrom','PeriodTo','Water'],
 };
 
 // ============================================================
@@ -151,6 +151,8 @@ function handleRequest(e) {
       case 'deletePayroll':      result = deletePayroll(data.PayrollID); break;
       case 'getPayrollEom':      result = getPayrollEom(data.month); break;
       case 'savePayrollEom':     result = savePayrollEom(data); break;
+      case 'deletePayrollEom':   result = deletePayrollEom(data.EomID); break;
+      case 'getPayslip':         result = getPayslip(data); break;
       // ARCHIVE
       case 'getArchiveJobs':     result = getArchiveJobs(data.yearPrefix); break;
       case 'listArchiveSheets':  result = listArchiveSheets(); break;
@@ -240,7 +242,7 @@ function initSheet(sheet, name) {
                     'OrderedParts','UsedParts','OrderedFinish','CreatedAt'],
     REPAIR_ITEMS: ['ItemName','Category','CreatedAt'],
     DD_SETTINGS:  ['Key','Value','UpdatedAt'],
-    USERS:        ['UserID','Name','Role','Status','LineUserID','CreatedAt','PayType','DailyRate','FixWeek','SpecialRate','DeductPerDay','SSO','EmpCode'],
+    USERS:        ['UserID','Name','Role','Status','LineUserID','CreatedAt','PayType','DailyRate','FixWeek','SpecialRate','DeductPerDay','SSO','EmpCode','MonthBonus'],
     PART_ITEMS:   ['PartName','Zone','CreatedAt'],
   };
 
@@ -1140,6 +1142,7 @@ function addUser(data) {
     else if (h === 'DeductPerDay')  val = Number(data.DeductPerDay) || 0;
     else if (h === 'SSO')           val = Number(data.SSO) || 0;
     else if (h === 'EmpCode')       val = String(data.EmpCode || '').trim();
+    else if (h === 'MonthBonus')    val = Number(data.MonthBonus) || 0;
     else val = '';
 
     const cell = sheet.getRange(newRowNum, i + 1);
@@ -1464,7 +1467,7 @@ function deleteOT(otId) {
 // PAYROLL — Weekly Input
 // ============================================================
 
-// headers: PayrollID | UserID | Month | Week | WeekStart | WeekEnd
+// headers: PayrollID | UserID | Month | Week | PayDate | PeriodFrom | PeriodTo
 //          | Days | OTHours | BonusExtra | Water | SSO | DeductNow | Penalty
 
 function getPayroll(month) {
@@ -1507,8 +1510,9 @@ function savePayroll(data) {
       else if (h === 'UserID')     val = String(data.UserID || '');
       else if (h === 'Month')      val = String(data.Month || '');
       else if (h === 'Week')       val = Number(data.Week) || 0;
-      else if (h === 'WeekStart')  val = String(data.WeekStart || '');
-      else if (h === 'WeekEnd')    val = String(data.WeekEnd || '');
+      else if (h === 'PayDate')     val = String(data.PayDate || '');
+      else if (h === 'PeriodFrom') val = String(data.PeriodFrom || '');
+      else if (h === 'PeriodTo')   val = String(data.PeriodTo || '');
       else if (h === 'Days')       val = Number(data.Days) || 0;
       else if (h === 'OTHours')    val = Number(data.OTHours) || 0;
       else if (h === 'BonusExtra') val = Number(data.BonusExtra) || 0;
@@ -1546,7 +1550,7 @@ function deletePayroll(payrollId) {
 // PAYROLL_EOM — Month-end Settlement
 // ============================================================
 
-// headers: EomID | UserID | Month | W0Start | W0End | W1Start
+// headers: EomID | UserID | Month | PayDate | PeriodFrom | PeriodTo
 //          | Bonus | DeductLump | SSO
 
 function getPayrollEom(month) {
@@ -1587,10 +1591,11 @@ function savePayrollEom(data) {
       if      (h === 'EomID')      val = eomId;
       else if (h === 'UserID')     val = String(data.UserID || '');
       else if (h === 'Month')      val = String(data.Month || '');
-      else if (h === 'W0Start')    val = String(data.W0Start || '');
-      else if (h === 'W0End')      val = String(data.W0End || '');
-      else if (h === 'W1Start')    val = String(data.W1Start || '');
+      else if (h === 'PayDate')     val = String(data.PayDate || '');
+      else if (h === 'PeriodFrom') val = String(data.PeriodFrom || '');
+      else if (h === 'PeriodTo')   val = String(data.PeriodTo || '');
       else if (h === 'Bonus')      val = Number(data.Bonus) || 0;
+      else if (h === 'Water')      val = Number(data.Water) || 0;
       else if (h === 'DeductLump') val = Number(data.DeductLump) || 0;
       else if (h === 'SSO')        val = Number(data.SSO) || 0;
       else val = '';
@@ -1600,5 +1605,47 @@ function savePayrollEom(data) {
       cell.setValue(val);
     });
     return { success: true, data: { EomID: eomId } };
+  } catch(e) { return { success: false, error: e.toString() }; }
+}
+
+function deletePayrollEom(eomId) {
+  try {
+    const sheet = getSheet(SHEETS.PAYROLL_EOM);
+    const rows = sheet.getDataRange().getValues();
+    const idIdx = rows[0].indexOf('EomID');
+    for (let i = rows.length - 1; i >= 1; i--) {
+      if (String(rows[i][idIdx]) === String(eomId)) {
+        sheet.deleteRow(i + 1);
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'EomID not found' };
+  } catch(e) { return { success: false, error: e.toString() }; }
+}
+
+// ============================================================
+// PAYSLIP — ดึงข้อมูลสลีปเงินเดือน
+// ============================================================
+function getPayslip(data) {
+  try {
+    const userId = String(data.UserID || '');
+    const month  = String(data.month  || '');
+    if (!userId || !month) return { success: false, error: 'UserID and month required' };
+
+    // ดึง USERS เพื่อเอา info พนักงาน
+    const users = getUsers();
+    const emp = (users.data || []).find(u => String(u.UserID) === userId);
+    if (!emp) return { success: false, error: 'User not found' };
+
+    // ดึง PAYROLL rows ของ UserID + Month
+    const prSheet = getSheet(SHEETS.PAYROLL);
+    const prRows  = sheetToObjects(prSheet, 'PAYROLL').filter(r => String(r.UserID) === userId && String(r.Month) === month);
+
+    // ดึง PAYROLL_EOM ของ UserID + Month
+    const eomSheet = getSheet(SHEETS.PAYROLL_EOM);
+    const eomRows  = sheetToObjects(eomSheet, 'PAYROLL_EOM').filter(r => String(r.UserID) === userId && String(r.Month) === month);
+    const eom = eomRows[0] || null;
+
+    return { success: true, data: { emp, weeks: prRows, eom } };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
