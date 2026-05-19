@@ -370,7 +370,7 @@ async function loadPayrollEmps() {
   try {
     var res = await apiCall({ action:'getUsers' });
     if (res.success) {
-      P_EMPS = (res.data||[]).filter(function(u){ var pt=u.PayType||'none'; return pt==='weekly'||pt==='monthly'||pt==='none'; })
+      P_EMPS = (res.data||[]).filter(function(u){ var pt=u.PayType||'none'; return pt==='weekly'||pt==='monthly'||pt==='fixed'; })
         .map(function(u){ return {
           id:u.UserID, name:u.Name, payType:u.PayType||'none',
           type:(u.PayType==='weekly')?'weekly':(u.PayType==='monthly'?'monthly':'fixed'),
@@ -399,7 +399,7 @@ function initPWState() {
   P_EMPS.forEach(function(e){ pEomState[e.id]={bonus:e.monthBonus||0,deductLump:0,sso:(e.type==='monthly')?(e.sso||0):0,water:0,payDate:'',periodFrom:'',periodTo:'',_id:''}; });
   pFixedState={};
   P_EMPS.filter(function(e){return e.type==='fixed';}).forEach(function(e){
-    pFixedState[e.id]={salary:e.fixPerWeek||0,bonusExtra:e.monthBonus||0,sso:e.sso||0,deductLump:0,_id:''};
+    pFixedState[e.id]={salary:e.fixPerWeek||0,bonusExtra:e.monthBonus||0,sso:e.sso||0,deductLump:0,water:0,payDate:'',periodFrom:'',periodTo:'',_id:''};
   });
 }
 
@@ -585,17 +585,17 @@ function renderPIHead(){
   document.getElementById('pt-fixed').style.display=hasFixed?'':'none';
   if(hasFixed){
     var _fref=fEmp[0];
-    var _feom=_fref?pEomState[_fref.id]:{payDate:'',periodFrom:'',periodTo:''};
+    var _feom=_fref?(pFixedState[_fref.id]||{payDate:'',periodFrom:'',periodTo:''}):{payDate:'',periodFrom:'',periodTo:''};
     var f0='<tr><th class="pcol-name-h pdate-th" style="background:#0f172a;border-right:2px solid #334155;"><div style="color:#fff;font-size:12px;font-weight:700;margin-bottom:2px;">🗂️ รายเดือน</div><div style="color:#64748b;font-size:9px;">จ่ายสิ้นเดือน</div></th>';
     f0+='<th colspan="4" class="pdate-th" style="padding:5px 8px;background:#7c2d12;border-left:2px solid #f97316;">';
     f0+='<div class="pdate-inputs">';
     f0+='<span class="pdate-label" style="color:#fbbf24;font-size:10px;font-weight:700;">💰 จ่ายสิ้นเดือน:</span>';
-    f0+=piDate('eom',_fref?_fref.id:'_',0,'payDate',_feom.payDate);
+    f0+=piDate('fixed',_fref?_fref.id:'_',0,'payDate',_feom.payDate);
     f0+='<span class="pdate-label" style="color:#fef3c7;">|</span>';
     f0+='<span class="pdate-label" style="color:#fbbf24;">ช่วง:</span>';
-    f0+=piDate('eom',_fref?_fref.id:'_',0,'periodFrom',_feom.periodFrom||'');
+    f0+=piDate('fixed',_fref?_fref.id:'_',0,'periodFrom',_feom.periodFrom||'');
     f0+='<span class="pdate-label" style="color:#fef3c7;">–</span>';
-    f0+=piDate('eom',_fref?_fref.id:'_',0,'periodTo',_feom.periodTo||'');
+    f0+=piDate('fixed',_fref?_fref.id:'_',0,'periodTo',_feom.periodTo||'');
     f0+='</div></th></tr>';
     var f1='<tr><th class="pcol-name-h">ชื่อ-นามสกุล</th>';
     f1+='<th class="pgh-eom pwk-sep">พิเศษ/เดือน</th>';
@@ -622,11 +622,18 @@ function setPDate(scope,eId,w,f,v,uid){
   else if(scope==='eom'){
     // payDate สิ้นเดือนใช้ร่วมกันทุก emp monthly — sync ทั้งหมด
     if(f==='payDate'){
-      P_EMPS.forEach(function(e){ if(e.type==='monthly'||e.type==='fixed'){ if(pEomState[e.id]) pEomState[e.id].payDate=v; } });
+      P_EMPS.forEach(function(e){ if(e.type==='monthly'){ if(pEomState[e.id]) pEomState[e.id].payDate=v; } });
     } else if(f==='periodFrom'||f==='periodTo'){
-      P_EMPS.forEach(function(e){ if(e.type==='monthly'||e.type==='fixed'){ if(pEomState[e.id]) pEomState[e.id][f]=v; } });
+      P_EMPS.forEach(function(e){ if(e.type==='monthly'){ if(pEomState[e.id]) pEomState[e.id][f]=v; } });
     } else {
       pEomState[eId][f]=v;
+    }
+  } else if(scope==='fixed'){
+    // payDate fixed sync ทุก fixed emp
+    if(f==='payDate'||f==='periodFrom'||f==='periodTo'){
+      P_EMPS.forEach(function(e){ if(e.type==='fixed'){ if(pFixedState[e.id]) pFixedState[e.id][f]=v; } });
+    } else {
+      if(pFixedState[eId]) pFixedState[eId][f]=v;
     }
   }
   // อัพเดต button label
@@ -729,7 +736,9 @@ function renderPIBody(){
   if(fEmp.length){
     // title อยู่ใน thead แล้ว
     fEmp.forEach(function(emp){
-      var fs=pFixedState[emp.id],net=Math.max(0,(fs.salary||0)+(fs.bonusExtra||0)-(fs.deductLump||0)-(fs.sso||0));
+      var fs=pFixedState[emp.id]||{salary:emp.fixPerWeek||0,bonusExtra:emp.monthBonus||0,sso:emp.sso||0,deductLump:0,_id:''};
+      pFixedState[emp.id]=fs;
+      var net=Math.max(0,(fs.salary||0)+(fs.bonusExtra||0)-(fs.deductLump||0)-(fs.sso||0));
       fHtml+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div></td>';
       fHtml+='<td>'+piF(emp.id,'bonusExtra',fs.bonusExtra,'pi-bonus')+'</td>';
       fHtml+='<td>'+piF(emp.id,'deductLump',fs.deductLump,'pi-deduct')+'</td>';
@@ -770,7 +779,7 @@ async function pOnMonthChange(month){
     ]);
     var prRows=res[0].success?(res[0].data||[]):[];
     var eomRows=res[1].success?(res[1].data||[]):[];
-    var hasData=prRows.length>0||eomRows.length>0;
+    var hasData=prRows.length>0||eomRows.length>0||P_EMPS.length>0;
     // map PAYROLL rows → pWState
     prRows.forEach(function(r){
       var w=Number(r.Week)||0;
@@ -796,6 +805,7 @@ async function pOnMonthChange(month){
           pFixedState[emp.id]={
             salary:emp.fixPerWeek||0,
             bonusExtra:Number(r.Bonus)||0,
+            water:Number(r.Water)||0,
             deductLump:Number(r.DeductLump)||0,
             sso:Number(r.SSO)||0,
             payDate:r.PayDate||'', periodFrom:r.PeriodFrom||'', periodTo:r.PeriodTo||'',
@@ -978,6 +988,7 @@ function tpOpen(scope,eId,w,f,uid,btnEl){
   var curVal='';
   if(scope==='week' && pWState[w] && pWState[w][eId]) curVal=pWState[w][eId][f]||'';
   else if(scope==='eom' && pEomState[eId]) curVal=pEomState[eId][f]||'';
+  else if(scope==='fixed' && pFixedState[eId]) curVal=pFixedState[eId][f]||'';
   _tp.selISO=curVal;
   // set initial month/year
   var d=curVal?new Date(curVal+'T00:00:00'):new Date();
