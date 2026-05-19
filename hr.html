@@ -86,7 +86,7 @@
     .pwk-sep { border-left: 2px solid var(--gray-300) !important; }
     .pres { font-weight: 700; color: #15803d; }
     .pres-green { font-weight: 700; color: #15803d; background: #dcfce7; }
-    .pcalc { font-size:9px; color:#64748b; text-align:center; margin-top:1px; white-space:nowrap; }
+    .pcalc { display:none; }
     .peom-sum-row td { background:#1e293b !important; border-top:1px dashed #334155; padding:4px 6px; }
     .peom-chip { display:inline-block; font-size:10px; padding:1px 6px; border-radius:10px; background:#334155; color:#cbd5e1; margin:1px 2px; white-space:nowrap; }
     .peom-chip-green { background:#14532d; color:#86efac; }
@@ -98,7 +98,7 @@
     .pzero { color: var(--gray-400); font-style: italic; font-size: 11px; }
     .pot-note { font-size: 10px; color: #6d28d9; font-weight: 600; display: block; margin-top: 2px; }
     .psso-sum { font-size: 11px; color: #92400e; font-weight: 700; }
-    input.pi-days   { width:52px; border:1.5px solid #16a34a; background:#dcfce7; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
+    input.pi-days   { width:90px; border:1.5px solid #16a34a; background:#dcfce7; border-radius:6px; padding:3px 4px; text-align:center; font-size:12px; font-family:inherit; }
     input.pi-date   { display:none; } /* ซ่อน native date input */
     .pi-date-btn    { width:82px; padding:3px 6px; font-size:11px; border:1px solid #cbd5e1; border-radius:6px; color:#1e293b; background:#f8fafc; font-family:inherit; cursor:pointer; text-align:center; white-space:nowrap; overflow:hidden; display:inline-flex; align-items:center; gap:4px; }
     .pi-date-btn:hover { border-color:#38bdf8; background:#f0f9ff; }
@@ -645,12 +645,11 @@ function renderPIBody(){
   if(wEmp.length){
     // title+date row อยู่ใน thead แล้ว
     wEmp.forEach(function(emp){
-      wHtml+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div><div class="pmeta">฿'+emp.dayRate+'/วัน</div></td>';
+      wHtml+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div></td>';
       // Week 1-4: ไม่มีทำโทษ, ไม่มี week0
       for(var w=1;w<=4;w++){
         var st=pWState[w][emp.id],r=pCalcWeekly(emp,st);
-        var dHint=st.days?'<div class="pcalc">'+st.days+'×'+emp.dayRate+'=฿'+(st.days*emp.dayRate).toLocaleString()+'</div>':'';
-        wHtml+='<td class="pwk-sep">'+piI('pi-days',emp.id,w,'days',st.days)+dHint+'</td>';
+        wHtml+='<td class="pwk-sep">'+piI('pi-days',emp.id,w,'days',st.days)+'</td>';
         wHtml+='<td>'+piI('pi-ot',emp.id,w,'otHours',st.otHours)+'</td>';
         wHtml+='<td>'+piI('pi-bonus',emp.id,w,'bonusExtra',st.bonusExtra)+'</td>';
         wHtml+='<td>'+piI('pi-water',emp.id,w,'water',st.water)+'</td>';
@@ -663,8 +662,7 @@ function renderPIBody(){
       var es=pEomState[emp.id];
       // คำนวณรับ/สัปดาห์ week5 รวม bonus/water/deductLump/sso จาก EOM
       var w5net=Math.max(0,(st5.days||0)*emp.dayRate+(st5.otHours||0)*pOTRate(emp)+(es.bonus||0)-(es.water||0)-(es.deductLump||0)-(es.sso||0));
-      var d5Hint=st5.days?'<div class="pcalc">'+st5.days+'×'+emp.dayRate+'=฿'+(st5.days*emp.dayRate).toLocaleString()+'</div>':'';
-      wHtml+='<td class="pwk-sep" style="background:#fdf2f8;">'+piI('pi-days',emp.id,5,'days',st5.days)+d5Hint+'</td>';
+      wHtml+='<td class="pwk-sep" style="background:#fdf2f8;">'+piI('pi-days',emp.id,5,'days',st5.days)+'</td>';
       wHtml+='<td style="background:#fdf2f8;">'+piI('pi-ot',emp.id,5,'otHours',st5.otHours)+'</td>';
       wHtml+='<td style="background:#fdf2f8;">'+piE(emp.id,'bonus',es.bonus)+'</td>';
       wHtml+='<td style="background:#fdf2f8;">'+piE(emp.id,'water',es.water,'pi-water')+'</td>';
@@ -681,15 +679,13 @@ function renderPIBody(){
 
     mEmp.forEach(function(emp){
       var st0=pWState[0][emp.id];
-      mHtml+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div><div class="pmeta">฿'+emp.dayRate+'/วัน +฿'+emp.specialRate+'/วัน(พิเศษ) | Fix฿'+emp.fixPerWeek+'/สปด.</div></td>';
-      var d0Hint=st0.days?'<div class="pcalc">'+st0.days+'วัน(เศษ)</div>':'';
-      mHtml+='<td class="pwk-sep">'+piI('pi-days',emp.id,0,'days',st0.days)+d0Hint+'</td>';
+      mHtml+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div></td>';
+      mHtml+='<td class="pwk-sep">'+piI('pi-days',emp.id,0,'days',st0.days)+'</td>';
       // Weeks 1–4: normal PCOLS
       for(var w=1;w<=4;w++){
         var st=pWState[w][emp.id],r=pCalcMonthlyWeek(emp,st);
         var absent=st.days?Math.max(0,emp.maxDays-st.days):0;
-        var dHint=st.days?'<div class="pcalc" style="color:#ef4444;">Fix฿'+emp.fixPerWeek+'-('+emp.deductPerAbsent+'×'+absent+')=฿'+Math.max(0,emp.fixPerWeek-absent*emp.deductPerAbsent).toLocaleString()+'</div>':'';
-        mHtml+='<td class="pwk-sep">'+piI('pi-days',emp.id,w,'days',st.days)+dHint+'</td>';
+        mHtml+='<td class="pwk-sep">'+piI('pi-days',emp.id,w,'days',st.days)+'</td>';
         mHtml+='<td>'+piI('pi-ot',emp.id,w,'otHours',st.otHours)+'</td>';
         mHtml+='<td>'+piI('pi-bonus',emp.id,w,'bonusExtra',st.bonusExtra)+'</td>';
         mHtml+='<td>'+piI('pi-water',emp.id,w,'water',st.water)+'</td>';
@@ -705,14 +701,12 @@ function renderPIBody(){
       mHtml+='<td class="pwk-sep" style="background:#fffbeb;">'+piI('pi-days',emp.id,5,'days',st5.days)+'</td>';
       // 2. วันทำงานรวม (display: sum week0–5)
       var mTotalDays=0; for(var ww=0;ww<=5;ww++) mTotalDays+=(pWState[ww][emp.id].days||0);
-      var mDayHint=mTotalDays?'<div class="pcalc">'+mTotalDays+'×฿'+(emp.dayRate||0)+'=฿'+(mTotalDays*(emp.dayRate||0)).toLocaleString()+'</div>':'';
-      mHtml+='<td class="psum-days" style="background:#fffbeb;">'+mTotalDays+mDayHint+'</td>';
+      mHtml+='<td class="psum-days" style="background:#fffbeb;">'+mTotalDays+'</td>';
       // 3. OT ชม. (week5 input)
       mHtml+='<td style="background:#fffbeb;">'+piI('pi-ot',emp.id,5,'otHours',st5.otHours)+'</td>';
       // 4. OT รวม (display: sum week1–5)
       var mTotalOT=0; for(var ww=1;ww<=5;ww++) mTotalOT+=(pWState[ww][emp.id].otHours||0);
-      var mOTHint=mTotalOT?'<div class="pcalc">'+mTotalOT+'×฿'+Math.round(pOTRate(emp))+'=฿'+(mTotalOT*pOTRate(emp)).toLocaleString()+'</div>':'';
-      mHtml+='<td class="psum-ot" style="background:#fffbeb;">'+mTotalOT+mOTHint+'</td>';
+      mHtml+='<td class="psum-ot" style="background:#fffbeb;">'+mTotalOT+'</td>';
       // 5. พิเศษต่อเดือน (bonus input)
       mHtml+='<td style="background:#fffbeb;">'+piE(emp.id,'bonus',es.bonus)+'</td>';
       // 6. น้ำ/ไฟ (water input)
@@ -736,7 +730,7 @@ function renderPIBody(){
     // title อยู่ใน thead แล้ว
     fEmp.forEach(function(emp){
       var fs=pFixedState[emp.id],net=Math.max(0,(fs.salary||0)+(fs.bonusExtra||0)-(fs.deductLump||0)-(fs.sso||0));
-      fHtml+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div><div class="pmeta">เงินเดือน ฿'+(emp.fixPerWeek||0).toLocaleString()+'/เดือน</div></td>';
+      fHtml+='<tr><td class="pcol-name"><div class="pname">'+emp.name+'</div></td>';
       fHtml+='<td>'+piF(emp.id,'bonusExtra',fs.bonusExtra,'pi-bonus')+'</td>';
       fHtml+='<td>'+piF(emp.id,'deductLump',fs.deductLump,'pi-deduct')+'</td>';
       fHtml+='<td>'+piF(emp.id,'sso',fs.sso,'pi-eom-sso')+'</td>';
