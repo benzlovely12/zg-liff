@@ -1485,47 +1485,48 @@ function savePayroll(data) {
     const allData = sheet.getDataRange().getValues();
     const headers = allData[0];
     const idIdx = headers.indexOf('PayrollID');
+    const textCols = TEXT_COLUMNS['PAYROLL'] || [];
 
-    // ถ้ามี PayrollID แล้ว → update row
+    function buildRow(payrollId) {
+      return headers.map(h => {
+        if      (h === 'PayrollID')  return payrollId;
+        else if (h === 'UserID')     return String(data.UserID || '');
+        else if (h === 'Month')      return String(data.Month || '');
+        else if (h === 'Week')       return Number(data.Week) || 0;
+        else if (h === 'PayDate')    return String(data.PayDate || '');
+        else if (h === 'PeriodFrom') return String(data.PeriodFrom || '');
+        else if (h === 'PeriodTo')   return String(data.PeriodTo || '');
+        else if (h === 'Days')       return Number(data.Days) || 0;
+        else if (h === 'OTHours')    return Number(data.OTHours) || 0;
+        else if (h === 'BonusExtra') return Number(data.BonusExtra) || 0;
+        else if (h === 'Water')      return Number(data.Water) || 0;
+        else if (h === 'SSO')        return Number(data.SSO) || 0;
+        else if (h === 'DeductNow')  return Number(data.DeductNow) || 0;
+        else if (h === 'Penalty')    return Number(data.Penalty) || 0;
+        else return '';
+      });
+    }
+
+    // update row ด้วย setValues batch (1 API call)
     if (data.PayrollID) {
       for (let i = 1; i < allData.length; i++) {
         if (String(allData[i][idIdx]) === String(data.PayrollID)) {
-          headers.forEach((h, col) => {
-            if (h !== 'PayrollID' && data[h] !== undefined) {
-              sheet.getRange(i + 1, col + 1).setValue(data[h]);
-            }
-          });
+          sheet.getRange(i + 1, 1, 1, headers.length).setValues([buildRow(data.PayrollID)]);
           cacheRemove('payroll_' + data.Month);
           return { success: true, data: { PayrollID: data.PayrollID } };
         }
       }
     }
 
-    // ไม่มี → insert ใหม่
+    // insert ใหม่ด้วย setValues batch (1 API call)
     const payrollId = generateId('PAY');
-    const newRow = allData.length + 1;
-    headers.forEach((h, i) => {
-      let val;
-      if      (h === 'PayrollID')  val = payrollId;
-      else if (h === 'UserID')     val = String(data.UserID || '');
-      else if (h === 'Month')      val = String(data.Month || '');
-      else if (h === 'Week')       val = Number(data.Week) || 0;
-      else if (h === 'PayDate')     val = String(data.PayDate || '');
-      else if (h === 'PeriodFrom') val = String(data.PeriodFrom || '');
-      else if (h === 'PeriodTo')   val = String(data.PeriodTo || '');
-      else if (h === 'Days')       val = Number(data.Days) || 0;
-      else if (h === 'OTHours')    val = Number(data.OTHours) || 0;
-      else if (h === 'BonusExtra') val = Number(data.BonusExtra) || 0;
-      else if (h === 'Water')      val = Number(data.Water) || 0;
-      else if (h === 'SSO')        val = Number(data.SSO) || 0;
-      else if (h === 'DeductNow')  val = Number(data.DeductNow) || 0;
-      else if (h === 'Penalty')    val = Number(data.Penalty) || 0;
-      else val = '';
-      const cell = sheet.getRange(newRow, i + 1);
-      const textCols = TEXT_COLUMNS['PAYROLL'] || [];
-      if (textCols.includes(h)) cell.setNumberFormat('@');
-      cell.setValue(val);
+    const newRowNum = allData.length + 1;
+    // set text format เฉพาะ text columns
+    textCols.forEach(col => {
+      const ci = headers.indexOf(col);
+      if (ci >= 0) sheet.getRange(newRowNum, ci + 1).setNumberFormat('@');
     });
+    sheet.getRange(newRowNum, 1, 1, headers.length).setValues([buildRow(payrollId)]);
     cacheRemove('payroll_' + data.Month);
     return { success: true, data: { PayrollID: payrollId } };
   } catch(e) { return { success: false, error: e.toString() }; }
@@ -1568,42 +1569,42 @@ function savePayrollEom(data) {
     const allData = sheet.getDataRange().getValues();
     const headers = allData[0];
     const idIdx = headers.indexOf('EomID');
+    const textCols = TEXT_COLUMNS['PAYROLL_EOM'] || [];
 
-    // update ถ้ามี EomID
+    function buildRow(eomId) {
+      return headers.map(h => {
+        if      (h === 'EomID')      return eomId;
+        else if (h === 'UserID')     return String(data.UserID || '');
+        else if (h === 'Month')      return String(data.Month || '');
+        else if (h === 'PayDate')    return String(data.PayDate || '');
+        else if (h === 'PeriodFrom') return String(data.PeriodFrom || '');
+        else if (h === 'PeriodTo')   return String(data.PeriodTo || '');
+        else if (h === 'Bonus')      return Number(data.Bonus) || 0;
+        else if (h === 'Water')      return Number(data.Water) || 0;
+        else if (h === 'DeductLump') return Number(data.DeductLump) || 0;
+        else if (h === 'SSO')        return Number(data.SSO) || 0;
+        else return '';
+      });
+    }
+
+    // update ด้วย setValues batch (1 API call)
     if (data.EomID) {
       for (let i = 1; i < allData.length; i++) {
         if (String(allData[i][idIdx]) === String(data.EomID)) {
-          headers.forEach((h, col) => {
-            if (h !== 'EomID' && data[h] !== undefined) {
-              sheet.getRange(i + 1, col + 1).setValue(data[h]);
-            }
-          });
+          sheet.getRange(i + 1, 1, 1, headers.length).setValues([buildRow(data.EomID)]);
           return { success: true, data: { EomID: data.EomID } };
         }
       }
     }
 
-    // insert ใหม่
+    // insert ใหม่ด้วย setValues batch (1 API call)
     const eomId = generateId('EOM');
-    const newRow = allData.length + 1;
-    headers.forEach((h, i) => {
-      let val;
-      if      (h === 'EomID')      val = eomId;
-      else if (h === 'UserID')     val = String(data.UserID || '');
-      else if (h === 'Month')      val = String(data.Month || '');
-      else if (h === 'PayDate')     val = String(data.PayDate || '');
-      else if (h === 'PeriodFrom') val = String(data.PeriodFrom || '');
-      else if (h === 'PeriodTo')   val = String(data.PeriodTo || '');
-      else if (h === 'Bonus')      val = Number(data.Bonus) || 0;
-      else if (h === 'Water')      val = Number(data.Water) || 0;
-      else if (h === 'DeductLump') val = Number(data.DeductLump) || 0;
-      else if (h === 'SSO')        val = Number(data.SSO) || 0;
-      else val = '';
-      const cell = sheet.getRange(newRow, i + 1);
-      const textCols = TEXT_COLUMNS['PAYROLL_EOM'] || [];
-      if (textCols.includes(h)) cell.setNumberFormat('@');
-      cell.setValue(val);
+    const newRowNum = allData.length + 1;
+    textCols.forEach(col => {
+      const ci = headers.indexOf(col);
+      if (ci >= 0) sheet.getRange(newRowNum, ci + 1).setNumberFormat('@');
     });
+    sheet.getRange(newRowNum, 1, 1, headers.length).setValues([buildRow(eomId)]);
     return { success: true, data: { EomID: eomId } };
   } catch(e) { return { success: false, error: e.toString() }; }
 }
