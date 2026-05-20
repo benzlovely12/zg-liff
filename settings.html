@@ -1200,11 +1200,20 @@ function dragOver(e) {
 }
 function dragDrop(e) {
   e.preventDefault();
+  document.querySelectorAll('#usersTableBody tr').forEach(r => r.style.borderTop = '');
   const destIdx = parseInt(e.currentTarget.dataset.idx);
   if (dragSrcIdx === null || dragSrcIdx === destIdx) return;
   const moved = ALL_USERS.splice(dragSrcIdx, 1)[0];
   ALL_USERS.splice(destIdx, 0, moved);
   renderUsersList(ALL_USERS);
+  // บันทึกลำดับใหม่ลง Sheets ทันที
+  const order = ALL_USERS.map(u => u.UserID);
+  apiCall({ action: 'reorderUsers', order: order })
+    .then(res => {
+      if (res.success) showToast('บันทึกลำดับสำเร็จ', 'success');
+      else showToast('บันทึกลำดับไม่สำเร็จ', 'error');
+    })
+    .catch(() => showToast('บันทึกลำดับไม่สำเร็จ', 'error'));
 }
 function initDragDrop() {
   document.querySelectorAll('#usersTableBody tr').forEach(r => {
