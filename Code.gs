@@ -136,6 +136,7 @@ function handleRequest(e) {
       case 'addUser':            result = addUser(data); break;
       case 'updateUser':         result = updateUser(data); break;
       case 'deleteUser':         result = deleteUser(data.UserID); break;
+      case 'reorderUsers':       result = reorderUsers(data.order); break;
       // HR — LEAVE
       case 'getLeaves':          result = getLeaves(data); break;
       case 'addLeave':           result = addLeave(data); break;
@@ -242,7 +243,7 @@ function initSheet(sheet, name) {
                     'OrderedParts','UsedParts','OrderedFinish','CreatedAt'],
     REPAIR_ITEMS: ['ItemName','Category','CreatedAt'],
     DD_SETTINGS:  ['Key','Value','UpdatedAt'],
-    USERS:        ['UserID','Name','Role','Status','LineUserID','CreatedAt','PayType','DailyRate','FixWeek','SpecialRate','DeductPerDay','SSO','EmpCode','MonthBonus'],
+    USERS:        ['UserID','Name','Role','Status','LineUserID','CreatedAt','PayType','DailyRate','FixWeek','SpecialRate','DeductPerDay','SSO','EmpCode','MonthBonus','SortOrder'],
     PART_ITEMS:   ['PartName','Zone','CreatedAt'],
   };
 
@@ -1114,6 +1115,12 @@ function getUsers() {
 
   const sheet = getSheet(SHEETS.USERS);
   const users = sheetToObjects(sheet, 'USERS');
+  // sort ตาม SortOrder ถ้ามี ไม่มีให้ไปท้ายสุด
+  users.sort((a, b) => {
+    const sa = (a.SortOrder !== '' && a.SortOrder !== undefined) ? Number(a.SortOrder) : 9999;
+    const sb = (b.SortOrder !== '' && b.SortOrder !== undefined) ? Number(b.SortOrder) : 9999;
+    return sa - sb;
+  });
   cachePut('users', users);
   return { success: true, data: users };
 }
@@ -1191,6 +1198,32 @@ function deleteUser(userId) {
     }
   }
   return { success: false, error: 'User not found' };
+}
+
+// เรียงลำดับ users ตาม array of UserIDs ที่ส่งมา
+function reorderUsers(order) {
+  try {
+    if (!order || !Array.isArray(order)) return { success: false, error: 'invalid order' };
+    const sheet = getSheet(SHEETS.USERS);
+    const allData = sheet.getDataRange().getValues();
+    const headers = allData[0];
+    const idIdx = headers.indexOf('UserID');
+    const sortIdx = headers.indexOf('SortOrder');
+    if (sortIdx < 0) return { success: false, error: 'SortOrder column not found' };
+
+    // สร้าง map UserID → rowIndex (1-based)
+    const rowMap = {};
+    for (let i = 1; i < allData.length; i++) {
+      rowMap[String(allData[i][idIdx]).trim()] = i + 1;
+    }
+    // เขียน SortOrder ทีละ row — ใช้ batch setValues ต่อแถว
+    order.forEach((uid, idx) => {
+      const rowNum = rowMap[String(uid)];
+      if (rowNum) sheet.getRange(rowNum, sortIdx + 1).setValue(idx + 1);
+    });
+    cacheRemove('users');
+    return { success: true };
+  } catch(e) { return { success: false, error: e.toString() }; }
 }
 
 // ============================================================
@@ -1487,11 +1520,14 @@ function savePayroll(data) {
     const idIdx = headers.indexOf('PayrollID');
     const textCols = TEXT_COLUMNS['PAYROLL'] || [];
 
+    // derive Month จาก PayDate อัตโนมัติ (ไม่ขึ้นกับ month picker ฝั่ง UI)
+    const derivedMonth = data.PayDate ? String(data.PayDate).substring(0, 7) : String(data.Month || '');
+
     function buildRow(payrollId) {
       return headers.map(h => {
         if      (h === 'PayrollID')  return payrollId;
         else if (h === 'UserID')     return String(data.UserID || '');
-        else if (h === 'Month')      return String(data.Month || '');
+        else if (h === 'Month')      return derivedMonth;
         else if (h === 'Week')       return Number(data.Week) || 0;
         else if (h === 'PayDate')    return String(data.PayDate || '');
         else if (h === 'PeriodFrom') return String(data.PeriodFrom || '');
@@ -1503,6 +1539,8 @@ function savePayroll(data) {
         else if (h === 'SSO')        return Number(data.SSO) || 0;
         else if (h === 'DeductNow')  return Number(data.DeductNow) || 0;
         else if (h === 'Penalty')    return Number(data.Penalty) || 0;
+        else if (h === 'DayRate')    return Number(data.DayRate) || 0;
+        else if (h === 'SpRate')     return Number(data.SpRate) || 0;
         else return '';
       });
     }
