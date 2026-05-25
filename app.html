@@ -2164,9 +2164,14 @@
                     <div style="padding:10px 14px;font-size:12px;font-weight:700;color:var(--gray-700);border-bottom:1px solid var(--gray-200);background:var(--gray-50);display:flex;align-items:center;gap:6px;flex-shrink:0;">
                       <i class="fa-solid fa-box-open" style="color:#b45309;font-size:11px;"></i>
                       อะไหล่ของ <span id="ri_parts_title" style="color:#b45309;margin-left:4px;">—</span>
-                      <button class="btn btn-primary btn-sm" style="margin-left:auto;padding:3px 10px;font-size:11px;" onclick="piOpenAddModal()">
-                        <i class="fa-solid fa-plus"></i> เพิ่ม
-                      </button>
+                      <div style="margin-left:auto;display:flex;gap:5px;">
+                        <button class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;" onclick="piOpenAddModal()">
+                          <i class="fa-solid fa-plus"></i> เพิ่ม
+                        </button>
+                        <button class="btn btn-sm" id="btnImportPart" style="padding:3px 10px;font-size:11px;background:#d97706;color:#fff;border:none;border-radius:5px;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;font-weight:600;" onclick="importCurrentJobParts()" title="นำเข้าอะไหล่ทั้งหมดของ Job นี้เข้าระบบติดตาม">
+                          <i class="fa-solid fa-arrow-right-to-bracket"></i> ติดตามอะไหล่
+                        </button>
+                      </div>
                     </div>
                     <div style="flex:1;overflow-y:auto;">
                       <table class="data-table">
@@ -2771,6 +2776,40 @@ function openHR() {
 
 function openPart() {
   location.href = 'https://benzlovely12.github.io/zg-liff/Part.html';
+}
+
+// นำเข้าอะไหล่ของ Job ปัจจุบันเข้าระบบติดตาม (PART_TRACK)
+async function importCurrentJobParts() {
+  var jobId = currentJobId || '';
+  if (!jobId) {
+    // fallback: อ่านจาก input Job ID ใน form
+    var el = document.getElementById('f_jobId') || document.getElementById('jd_jobId');
+    if (el) jobId = (el.value || el.textContent || '').trim();
+  }
+  if (!jobId) { showToast('ไม่พบ Job ID — กรุณาเปิด Job ก่อน', 'error'); return; }
+
+  var btn = document.getElementById('btnImportPart');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังนำเข้า...'; }
+
+  try {
+    var res = await apiCall({ action: 'importPartFromJob', jobId: jobId });
+    if (res.success) {
+      var msg = 'นำเข้าอะไหล่ ' + res.imported + ' รายการเข้าระบบติดตามแล้ว';
+      if (res.skipped > 0) msg += ' (ข้าม ' + res.skipped + ' รายการที่มีแล้ว)';
+      showToast(msg, 'success');
+      // ปุ่มไปหน้าติดตาม
+      if (res.imported > 0) {
+        var goBtn = confirm(msg + '\n\nต้องการไปดูหน้าติดตามอะไหล่เลยไหม?');
+        if (goBtn) openPart();
+      }
+    } else {
+      showToast('นำเข้าไม่สำเร็จ: ' + (res.error || 'unknown'), 'error');
+    }
+  } catch(e) {
+    showToast('นำเข้าไม่สำเร็จ: ' + e.message, 'error');
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> ติดตามอะไหล่'; }
 }
 
 // ============================================================
