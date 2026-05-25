@@ -767,102 +767,159 @@ function setPFixed(eId,f,v){ pFixedState[eId][f]=parseFloat(v)||0; }
 
 // ── Save ──────────────────────────────────────────────────────
 
-// บันทึกเฉพาะ weekly emp (รายสัปดาห์) — ไม่แตะ monthly_Sp หรือ fixed
+// บันทึกเฉพาะ weekly emp — ส่ง batch 1 request ไม่ว่าจะกี่คน
 async function saveWeek(w){
   flushInputsToState();
-  var btnId='btnW'+w;
-  var btn=document.getElementById(btnId);
+  var btn=document.getElementById('btnW'+w);
   if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>'; }
   try {
-    var calls=[];
+    var rows=[];
     P_EMPS.forEach(function(emp){
-      if(emp.type!=='weekly') return; // เฉพาะ weekly เท่านั้น
+      if(emp.type!=='weekly') return;
       var st=pWState[w][emp.id];
       var r=pRowRate[emp.id]||{dayRate:emp.dayRate,spRate:emp.specialRate};
-      var month=st.payDate ? st.payDate.substring(0,7) : fmtMonth(new Date());
-      calls.push(apiCall({action:'savePayroll',PayrollID:st._id||'',UserID:emp.id,Month:month,Week:w,
-        PayDate:st.payDate||'',PeriodFrom:st.periodFrom||'',PeriodTo:st.periodTo||'',
-        Days:st.days||0,OTHours:st.otHours||0,BonusExtra:st.bonusExtra||0,
-        Water:st.water||0,SSO:st.sso||0,DeductNow:st.deductNow||0,Penalty:st.penalty||0,
-        DayRate:r.dayRate,SpRate:r.spRate
-      }).then(function(res){ if(res.success&&res.data&&res.data.PayrollID) st._id=res.data.PayrollID; }));
+      rows.push({
+        PayrollID:st._id||'', UserID:emp.id,
+        PayDate:st.payDate||'', PeriodFrom:st.periodFrom||'', PeriodTo:st.periodTo||'',
+        Days:st.days||0, OTHours:st.otHours||0, BonusExtra:st.bonusExtra||0,
+        Water:st.water||0, SSO:st.sso||0, DeductNow:st.deductNow||0, Penalty:st.penalty||0,
+        DayRate:r.dayRate, SpRate:r.spRate
+      });
     });
-    await Promise.all(calls);
-    showToast('บันทึกสัปดาห์ที่ '+w+' (รายวัน) สำเร็จ','success');
+    if(rows.length===0){ showToast('ไม่มีพนักงานรายวัน','error'); return; }
+    var res=await apiCall({action:'savePayrollBatch', week:w, rows:rows});
+    if(res.success){
+      // อัพเดท _id กลับเข้า state
+      (res.saved||[]).forEach(function(s){
+        if(pWState[w][s.UserID]) pWState[w][s.UserID]._id=s.PayrollID;
+      });
+      showToast('บันทึกสัปดาห์ที่ '+w+' (รายวัน) สำเร็จ — '+rows.length+' คน','success');
+    } else {
+      showToast('บันทึกไม่สำเร็จ: '+(res.error||'unknown'),'error');
+    }
   } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
   if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> บันทึก'; }
 }
 
-// บันทึกเฉพาะ monthly_Sp emp (รายเดือน/เบิกย่อย) แต่ละสัปดาห์ — ไม่แตะ weekly หรือ fixed
+// บันทึกเฉพาะ monthly_Sp emp — ส่ง batch 1 request (รวม week 0 เมื่อ w===1)
 async function saveMonthlyWeek(w){
   flushInputsToState();
-  var btnId='btnMW'+w;
-  var btn=document.getElementById(btnId);
+  var btn=document.getElementById('btnMW'+w);
   if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>'; }
   try {
-    var calls=[];
-    // week 0 = นับวันสะสม (ไม่มี payDate จ่าย) — บันทึกพร้อมกับ week 1 ถ้า w===1
+    // week 0 ต้องบันทึกคู่กับ week 1 เสมอ → ส่งใน request เดียว แยก week field
     var wks=[w];
-    if(w===1) wks=[0,1]; // week 0 ของ monthly_Sp ต้องบันทึกคู่กับ week 1 เสมอ
+    if(w===1) wks=[0,1];
+    var allRows=[];
     wks.forEach(function(wk){
       P_EMPS.forEach(function(emp){
-        if(emp.type!=='monthly') return; // เฉพาะ monthly_Sp เท่านั้น
+        if(emp.type!=='monthly') return;
         var st=pWState[wk][emp.id];
         var r=pRowRate[emp.id]||{dayRate:emp.dayRate,spRate:emp.specialRate};
-        // week 0 ไม่มี payDate จ่าย ใช้ payDate ของ week 1 แทนสำหรับ derive Month
-        var refPayDate = wk===0 ? (pWState[1][emp.id].payDate||'') : (st.payDate||'');
-        var month=refPayDate ? refPayDate.substring(0,7) : fmtMonth(new Date());
-        calls.push(apiCall({action:'savePayroll',PayrollID:st._id||'',UserID:emp.id,Month:month,Week:wk,
+        var refPayDate=wk===0?(pWState[1][emp.id].payDate||''):(st.payDate||'');
+        allRows.push({
+          _week:wk, // ส่งไปบอก backend ว่า row นี้เป็น week เท่าไหร่
+          PayrollID:st._id||'', UserID:emp.id,
           PayDate:wk===0?'':st.payDate||'',
-          PeriodFrom:st.periodFrom||'',PeriodTo:st.periodTo||'',
-          Days:st.days||0,OTHours:st.otHours||0,BonusExtra:st.bonusExtra||0,
-          Water:st.water||0,SSO:0,DeductNow:st.deductNow||0,Penalty:st.penalty||0,
-          DayRate:r.dayRate,SpRate:r.spRate
-        }).then(function(res){ if(res.success&&res.data&&res.data.PayrollID) st._id=res.data.PayrollID; }));
+          PeriodFrom:st.periodFrom||'', PeriodTo:st.periodTo||'',
+          Days:st.days||0, OTHours:st.otHours||0, BonusExtra:st.bonusExtra||0,
+          Water:st.water||0, SSO:0, DeductNow:st.deductNow||0, Penalty:st.penalty||0,
+          DayRate:r.dayRate, SpRate:r.spRate,
+          _refPayDate:refPayDate
+        });
       });
     });
-    await Promise.all(calls);
-    showToast('บันทึกสัปดาห์ที่ '+w+' (รายเดือน/เบิกย่อย) สำเร็จ','success');
+    if(allRows.length===0){ showToast('ไม่มีพนักงานรายเดือน/เบิกย่อย','error'); return; }
+
+    // แยก batch ตาม week เพราะ savePayrollBatch รับ week เดียวต่อ call
+    // (wks มีแค่ 1-2 ตัว ไม่เป็นปัญหา)
+    var calls=wks.map(function(wk){
+      var wkRows=allRows.filter(function(r){ return r._week===wk; }).map(function(r){
+        return {
+          PayrollID:r.PayrollID, UserID:r.UserID,
+          PayDate:r.PayDate, PeriodFrom:r.PeriodFrom, PeriodTo:r.PeriodTo,
+          Days:r.Days, OTHours:r.OTHours, BonusExtra:r.BonusExtra,
+          Water:r.Water, SSO:r.SSO, DeductNow:r.DeductNow, Penalty:r.Penalty,
+          DayRate:r.DayRate, SpRate:r.SpRate, _refPayDate:r._refPayDate
+        };
+      });
+      return apiCall({action:'savePayrollBatch', week:wk, rows:wkRows});
+    });
+    var results=await Promise.all(calls);
+    var allSaved=[];
+    results.forEach(function(res,i){
+      if(res.success) allSaved=allSaved.concat(res.saved||[]);
+    });
+    // อัพเดท _id กลับเข้า state
+    wks.forEach(function(wk){
+      allSaved.forEach(function(s){
+        if(pWState[wk]&&pWState[wk][s.UserID]&&!pWState[wk][s.UserID]._id)
+          pWState[wk][s.UserID]._id=s.PayrollID;
+      });
+    });
+    var empCount=P_EMPS.filter(function(e){return e.type==='monthly';}).length;
+    showToast('บันทึกสัปดาห์ที่ '+w+' (รายเดือน/เบิกย่อย) สำเร็จ — '+empCount+' คน','success');
   } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
   if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> บันทึก'; }
 }
+
+// บันทึก EOM สำหรับ monthly_Sp — batch 1 request
 async function saveEom(){
   flushInputsToState();
   var btn=document.getElementById('btnMEom');
   if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>'; }
   try {
-    var calls=[];
+    var rows=[];
     P_EMPS.forEach(function(emp){
       if(emp.type!=='monthly') return;
       var es=pEomState[emp.id];
-      var month = es.payDate ? es.payDate.substring(0,7) : fmtMonth(new Date());
-      calls.push(apiCall({action:'savePayrollEom',EomID:es._id||'',UserID:emp.id,Month:month,
-        PayDate:es.payDate||'',PeriodFrom:es.periodFrom||'',PeriodTo:es.periodTo||'',
-        Bonus:es.bonus||0,Water:es.water||0,DeductLump:es.deductLump||0,SSO:es.sso||0
-      }).then(function(res){ if(res.success&&res.data&&res.data.EomID) es._id=res.data.EomID; }));
+      rows.push({
+        EomID:es._id||'', UserID:emp.id,
+        PayDate:es.payDate||'', PeriodFrom:es.periodFrom||'', PeriodTo:es.periodTo||'',
+        Bonus:es.bonus||0, Water:es.water||0, DeductLump:es.deductLump||0, SSO:es.sso||0
+      });
     });
-    await Promise.all(calls);
-    showToast('บันทึกสิ้นเดือนสำเร็จ','success');
+    if(rows.length===0){ showToast('ไม่มีพนักงานรายเดือน/เบิกย่อย','error'); return; }
+    var res=await apiCall({action:'savePayrollEomBatch', rows:rows});
+    if(res.success){
+      (res.saved||[]).forEach(function(s){
+        if(pEomState[s.UserID]) pEomState[s.UserID]._id=s.EomID;
+      });
+      showToast('บันทึกสิ้นเดือน (รายเดือน/เบิกย่อย) สำเร็จ — '+rows.length+' คน','success');
+    } else {
+      showToast('บันทึกไม่สำเร็จ: '+(res.error||'unknown'),'error');
+    }
   } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
   if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> บันทึก'; }
 }
+
+// บันทึก fixed emp — batch 1 request
 async function saveFixed(){
   flushInputsToState();
   var btn=document.getElementById('btnFEom');
   if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>'; }
   try {
-    var calls=[];
+    var rows=[];
     P_EMPS.forEach(function(emp){
       if(emp.type!=='fixed') return;
       var fs=pFixedState[emp.id];
-      var month = fs.payDate ? fs.payDate.substring(0,7) : fmtMonth(new Date());
-      calls.push(apiCall({action:'savePayrollEom',EomID:fs._id||'',UserID:emp.id,Month:month,
-        PayDate:fs.payDate||'',PeriodFrom:fs.periodFrom||'',PeriodTo:fs.periodTo||'',
-        Bonus:(fs.salary||0)+(fs.bonusExtra||0),Water:fs.water||0,DeductLump:fs.deductLump||0,SSO:fs.sso||0
-      }).then(function(res){ if(res.success&&res.data&&res.data.EomID) fs._id=res.data.EomID; }));
+      rows.push({
+        EomID:fs._id||'', UserID:emp.id,
+        PayDate:fs.payDate||'', PeriodFrom:fs.periodFrom||'', PeriodTo:fs.periodTo||'',
+        Bonus:(fs.salary||0)+(fs.bonusExtra||0),
+        Water:fs.water||0, DeductLump:fs.deductLump||0, SSO:fs.sso||0
+      });
     });
-    await Promise.all(calls);
-    showToast('บันทึกรายเดือนสำเร็จ','success');
+    if(rows.length===0){ showToast('ไม่มีพนักงานรายเดือน','error'); return; }
+    var res=await apiCall({action:'savePayrollEomBatch', rows:rows});
+    if(res.success){
+      (res.saved||[]).forEach(function(s){
+        if(pFixedState[s.UserID]) pFixedState[s.UserID]._id=s.EomID;
+      });
+      showToast('บันทึกรายเดือน สำเร็จ — '+rows.length+' คน','success');
+    } else {
+      showToast('บันทึกไม่สำเร็จ: '+(res.error||'unknown'),'error');
+    }
   } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
   if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> บันทึก'; }
 }
