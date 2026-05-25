@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ติดตามอะไหล่ — ระบบจัดการอู่ซ่อมรถ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #dbeafe;
+      --success: #16a34a; --success-light: #dcfce7;
+      --warning: #d97706; --warning-light: #fef3c7;
+      --danger: #dc2626; --danger-light: #fee2e2;
+      --purple: #7c3aed; --purple-light: #ede9fe;
+      --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+      --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
+      --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827;
+      --sidebar-width: 240px; --header-height: 64px;
+      --radius: 12px; --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+    }
+    html, body { height: 100%; font-family: 'Sarabun', sans-serif; font-size: 15px; color: var(--gray-800); background: var(--gray-100); }
+    .app { display: flex; height: 100vh; overflow: hidden; }
+    /* Sidebar */
+    .sidebar { position: relative; z-index: 1; width: var(--sidebar-width); background: var(--gray-900); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+    .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sidebar-logo h1 { font-size: 17px; font-weight: 700; color: #fff; line-height: 1.3; }
+    .sidebar-logo span { font-size: 12px; color: var(--gray-400); font-weight: 400; }
+    .sidebar-section { padding: 12px 12px 4px; }
+    .sidebar-section-title { font-size: 10px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .08em; padding: 0 8px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); color: var(--gray-400); font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s; margin-bottom: 2px; }
+    .nav-item:hover { background: rgba(255,255,255,.06); color: #fff; }
+    .nav-item.active { background: var(--primary); color: #fff; }
+    .nav-item i { width: 18px; text-align: center; font-size: 14px; }
+    /* Main */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { height: var(--header-height); background: #fff; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; padding: 0 24px; gap: 16px; flex-shrink: 0; box-shadow: var(--shadow); }
+    .topbar-title { font-size: 18px; font-weight: 700; color: var(--gray-800); flex: 1; }
+    .content-area { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    /* Cards */
+    .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .card-header { padding: 14px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--gray-100); flex-wrap: wrap; gap: 8px; }
+    .card-title { font-size: 15px; font-weight: 700; color: var(--gray-800); flex: 1; }
+    /* Stat cards */
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: .04em; }
+    .stat-value { font-size: 26px; font-weight: 700; line-height: 1; }
+    .stat-sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+    .stat-wait { color: #f97316; }
+    .stat-ordered { color: var(--primary); }
+    .stat-received { color: #7c3aed; }
+    .stat-used { color: var(--success); }
+    .stat-alert { color: var(--danger); }
+    /* Tabs */
+    .pr-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid var(--gray-200); padding-bottom: 0; }
+    .pr-tab { padding: 8px 20px; border-radius: 8px 8px 0 0; border: 1px solid var(--gray-200); border-bottom: none; background: var(--gray-50); font-size: 13px; font-weight: 600; color: var(--gray-500); cursor: pointer; transition: all .15s; margin-bottom: -2px; }
+    .pr-tab:hover { background: #fff; color: var(--gray-700); }
+    .pr-tab.active { background: #fff; color: var(--primary); border-color: var(--gray-200); border-bottom: 2px solid #fff; }
+    .pr-tab-panel { display: none; }
+    .pr-tab-panel.active { display: block; }
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { background: var(--gray-50); padding: 9px 12px; font-size: 11px; font-weight: 600; color: var(--gray-500); text-align: left; border-bottom: 1px solid var(--gray-200); white-space: nowrap; }
+    .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--gray-50); }
+    /* Status badges */
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: all .15s; }
+    .status-badge:hover { opacity: .85; }
+    .s-wait     { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .s-ordered  { background: var(--primary-light); color: var(--primary-dark); border: 1px solid #bfdbfe; }
+    .s-received { background: var(--purple-light); color: var(--purple); border: 1px solid #c4b5fd; }
+    .s-used     { background: var(--success-light); color: var(--success); border: 1px solid #bbf7d0; }
+    /* Alert row */
+    .row-alert td { background: #fff5f5 !important; }
+    .row-alert td:first-child { border-left: 3px solid var(--danger); }
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; font-family: inherit; border: none; cursor: pointer; transition: all .15s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { background: #15803d; }
+    .btn-danger  { background: var(--danger); color: #fff; }
+    .btn-danger:hover  { background: #b91c1c; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-ghost { background: var(--gray-100); color: var(--gray-700); }
+    .btn-ghost:hover { background: var(--gray-200); }
+    /* Filter bar */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .filter-bar input, .filter-bar select { padding: 7px 11px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; background: #fff; color: var(--gray-800); }
+    .filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: var(--primary); }
+    .filter-bar input { width: 200px; }
+    /* Modal */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 9000; align-items: center; justify-content: center; }
+    .modal-bg.open { display: flex; }
+    .modal { background: #fff; border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.3); width: 480px; max-width: 96vw; max-height: 90vh; overflow-y: auto; }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; gap: 10px; }
+    .modal-title { font-size: 15px; font-weight: 700; flex: 1; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .modal-footer { padding: 12px 20px; border-top: 1px solid var(--gray-100); display: flex; gap: 8px; justify-content: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+    .form-input { padding: 8px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; }
+    .form-input:focus { outline: none; border-color: var(--primary); }
+    select.form-input { cursor: pointer; }
+    /* Toast */
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { padding: 12px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; background: var(--gray-800); color: #fff; box-shadow: var(--shadow-md); display: flex; align-items: center; gap: 10px; animation: slideIn .2s ease; }
+    .toast.success { background: var(--success); } .toast.error { background: var(--danger); }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    /* Import panel */
+    .job-search-wrap { display: flex; gap: 8px; margin-bottom: 12px; }
+    .job-search-wrap input { flex: 1; padding: 9px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; }
+    .job-search-wrap input:focus { outline: none; border-color: var(--primary); }
+    .import-job-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .import-job-card { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+    .import-job-card:hover { background: var(--primary-light); border-color: #93c5fd; cursor: pointer; }
+    .import-job-card.selected { background: var(--primary-light); border-color: var(--primary); }
+    .import-job-info { flex: 1; }
+    .import-job-id { font-weight: 700; font-size: 14px; color: var(--gray-800); }
+    .import-job-plate { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+    .import-job-parts { font-size: 11px; color: var(--primary); margin-top: 3px; font-weight: 600; }
+    .part-detail-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius-sm); }
+    .part-detail-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--gray-100); }
+    .part-detail-row:last-child { border-bottom: none; }
+    .part-detail-row:hover { background: var(--gray-50); }
+    .part-check { width: 16px; height: 16px; cursor: pointer; }
+    .part-name { flex: 1; font-size: 13px; }
+    .part-type { font-size: 11px; color: var(--gray-400); min-width: 50px; }
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--gray-400); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 600; color: var(--gray-500); }
+    .empty-sub { font-size: 13px; margin-top: 6px; }
+    /* Highlight alert */
+    .alert-bar { background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--danger); margin-bottom: 12px; }
+    .alert-bar i { font-size: 16px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1><i class="fa-solid fa-car-wrench" style="color:#60a5fa;margin-right:8px;"></i>AutoRepair</h1>
+      <span>ระบบจัดการอู่ซ่อมรถ</span>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">อะไหล่</div>
+      <div class="nav-item active" id="nav-track" onclick="showTab('track')">
+        <i class="fa-solid fa-magnifying-glass-chart"></i> ติดตามอะไหล่
+      </div>
+      <div class="nav-item" id="nav-import" onclick="showTab('import')">
+        <i class="fa-solid fa-file-import"></i> นำเข้าจาก JOB
+      </div>
+    </div>
+    <div class="sidebar-section" style="margin-top:auto;">
+      <div class="sidebar-section-title">ระบบ</div>
+      <div class="nav-item" onclick="goBack()"><i class="fa-solid fa-arrow-left"></i> กลับหน้าหลัก</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">
+        <i class="fa-solid fa-magnifying-glass-chart" style="color:var(--primary);margin-right:8px;"></i>ติดตามอะไหล่
+      </div>
+      <button class="btn btn-primary" onclick="refreshData()"><i class="fa-solid fa-rotate-right"></i> รีเฟรช</button>
+    </div>
+
+    <div class="content-area">
+
+      <!-- Tab: ติดตามอะไหล่ -->
+      <div id="panel-track" class="pr-tab-panel active">
+
+        <!-- Stats -->
+        <div class="stats-row" id="statsRow">
+          <div class="stat-card">
+            <div class="stat-label">ทั้งหมด</div>
+            <div class="stat-value" id="stat-total">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">🟠 รอสั่ง</div>
+            <div class="stat-value stat-wait" id="stat-wait">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">🔵 สั่งแล้ว</div>
+            <div class="stat-value stat-ordered" id="stat-ordered">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">🟣 รับแล้ว</div>
+            <div class="stat-value stat-received" id="stat-received">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">🟢 ใช้แล้ว</div>
+            <div class="stat-value stat-used" id="stat-used">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">⚠️ รอ &gt;7 วัน</div>
+            <div class="stat-value stat-alert" id="stat-alert">—</div>
+          </div>
+        </div>
+
+        <!-- Alert bar -->
+        <div class="alert-bar" id="alertBar" style="display:none;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="alertMsg"></span>
+        </div>
+
+        <!-- Filter -->
+        <div class="card" style="margin-bottom:16px;">
+          <div style="padding:12px 16px;">
+            <div class="filter-bar">
+              <input type="text" id="filterSearch" placeholder="ค้นหา JobID / ทะเบียน / ชื่ออะไหล่..." oninput="applyFilter()">
+              <select id="filterStatus" onchange="applyFilter()">
+                <option value="">— ทุกสถานะ —</option>
+                <option value="รอสั่ง">🟠 รอสั่ง</option>
+                <option value="สั่งแล้ว">🔵 สั่งแล้ว</option>
+                <option value="รับแล้ว">🟣 รับแล้ว</option>
+                <option value="ใช้แล้ว">🟢 ใช้แล้ว</option>
+              </select>
+              <select id="filterAlert" onchange="applyFilter()">
+                <option value="">— ทุกรายการ —</option>
+                <option value="alert">⚠️ รอนาน &gt;7 วัน</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="clearFilter()"><i class="fa-solid fa-xmark"></i> ล้าง</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">รายการอะไหล่</div>
+            <span id="rowCount" style="font-size:12px;color:var(--gray-400);"></span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Job ID</th>
+                  <th>ทะเบียน</th>
+                  <th>ชื่ออะไหล่</th>
+                  <th>ประเภท</th>
+                  <th>สถานะ</th>
+                  <th>วันที่สั่ง</th>
+                  <th>วันที่รับ</th>
+                  <th>Supplier</th>
+                  <th>ราคา</th>
+                  <th>หมายเหตุ</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="trackTbody">
+                <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--gray-400);">กำลังโหลด...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /panel-track -->
+
+      <!-- Tab: นำเข้าจาก JOB -->
+      <div id="panel-import" class="pr-tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-file-import" style="color:var(--primary);margin-right:6px;"></i>นำเข้าอะไหล่จาก JOB</div>
+          </div>
+          <div style="padding:16px 20px;">
+            <p style="font-size:13px;color:var(--gray-500);margin-bottom:14px;">ค้นหา Job แล้วเลือกอะไหล่ที่ต้องการนำเข้าระบบติดตาม</p>
+            <div class="job-search-wrap">
+              <input type="text" id="importSearch" placeholder="ค้นหา Job ID หรือทะเบียน..." oninput="searchJobs()">
+              <button class="btn btn-ghost btn-sm" onclick="loadAllJobs()"><i class="fa-solid fa-list"></i> ดูทั้งหมด</button>
+            </div>
+            <div id="importJobList" class="import-job-list">
+              <div class="empty-state">
+                <div class="empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <div class="empty-title">ค้นหา Job ที่ต้องการ</div>
+                <div class="empty-sub">ใส่ Job ID หรือทะเบียนรถ แล้วกดค้นหา</div>
+              </div>
+            </div>
+
+            <!-- Part detail of selected job -->
+            <div id="importDetailWrap" style="display:none;">
+              <div style="font-size:13px;font-weight:700;color:var(--gray-700);margin-bottom:8px;" id="importDetailTitle">อะไหล่ใน Job</div>
+              <div class="part-detail-list" id="importDetailList"></div>
+              <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+                <button class="btn btn-success" onclick="doImport()"><i class="fa-solid fa-file-import"></i> นำเข้ารายการที่เลือก</button>
+                <button class="btn btn-ghost" onclick="selectAllParts()"><i class="fa-solid fa-check-double"></i> เลือกทั้งหมด</button>
+                <button class="btn btn-ghost" onclick="deselectAllParts()"><i class="fa-solid fa-xmark"></i> ยกเลิกทั้งหมด</button>
+                <span id="importSelCount" style="font-size:12px;color:var(--gray-400);margin-left:4px;"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /panel-import -->
+
+    </div><!-- /content-area -->
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-pen" style="color:var(--primary);margin-right:8px;"></i>แก้ไขอะไหล่</div>
+      <button onclick="closeEditModal()" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:20px;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--gray-600);" id="modalPartInfo"></div>
+      <div class="form-group">
+        <label class="form-label">สถานะ</label>
+        <select class="form-input" id="editStatus">
+          <option value="รอสั่ง">🟠 รอสั่ง</option>
+          <option value="สั่งแล้ว">🔵 สั่งแล้ว</option>
+          <option value="รับแล้ว">🟣 รับแล้ว</option>
+          <option value="ใช้แล้ว">🟢 ใช้แล้ว</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">วันที่สั่ง</label>
+        <input type="date" class="form-input" id="editOrderedDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">วันที่รับ</label>
+        <input type="date" class="form-input" id="editReceivedDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Supplier / ร้านค้า</label>
+        <input type="text" class="form-input" id="editSupplier" placeholder="ชื่อ Supplier...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ราคา (บาท)</label>
+        <input type="number" min="0" class="form-input" id="editPrice" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea class="form-input" id="editNote" rows="2" placeholder="หมายเหตุเพิ่มเติม..." style="resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEditModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveEdit()"><i class="fa-solid fa-floppy-disk"></i> บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = (function(){
+  try { return localStorage.getItem('autoRepairApiUrl') || localStorage.getItem('apiUrl') || 'https://script.google.com/macros/s/AKfycbx5H77PCh6ehp1S2oTqVKiHCQh2-sfT-GPOvFTs82crSQ24qexfNutycuiPawCp7u5r/exec'; }
+  catch(e){ return 'https://script.google.com/macros/s/AKfycbx5H77PCh6ehp1S2oTqVKiHCQh2-sfT-GPOvFTs82crSQ24qexfNutycuiPawCp7u5r/exec'; }
+})();
+
+function goBack(){ location.href = 'https://benzlovely12.github.io/zg-liff/app.html'; }
+
+// ── API ───────────────────────────────────────────────────────
+async function apiCall(params){
+  var res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(params), redirect:'follow' });
+  return res.json();
+}
+function showToast(msg, type){
+  var icons = { success:'fa-circle-check', error:'fa-circle-xmark' };
+  var t = document.createElement('div');
+  t.className = 'toast ' + (type||'');
+  t.innerHTML = '<i class="fa-solid '+(icons[type]||'fa-info-circle')+'"></i> '+msg;
+  document.getElementById('toastWrap').appendChild(t);
+  setTimeout(function(){ t.remove(); }, 3500);
+}
+
+// ── Tab ───────────────────────────────────────────────────────
+function showTab(tab){
+  ['track','import'].forEach(function(t){
+    document.getElementById('nav-'+t).classList.toggle('active', t===tab);
+    document.getElementById('panel-'+t).classList.toggle('active', t===tab);
+  });
+  var titles = { track:'ติดตามอะไหล่', import:'นำเข้าจาก JOB' };
+  document.getElementById('topbarTitle').innerHTML = '<i class="fa-solid '+(tab==='track'?'fa-magnifying-glass-chart':'fa-file-import')+'" style="color:var(--primary);margin-right:8px;"></i>'+titles[tab];
+}
+
+// ============================================================
+// TRACK TAB
+// ============================================================
+var ALL_TRACKS = [];
+var FILTERED_TRACKS = [];
+var TODAY_ISO = (function(){ var d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+
+function daysDiff(isoDate){
+  if(!isoDate) return null;
+  var d = new Date(isoDate);
+  var today = new Date(TODAY_ISO);
+  return Math.floor((today - d) / 86400000);
+}
+function isAlert(row){
+  // รอสั่ง หรือ สั่งแล้ว นาน >7 วัน ถือว่า alert
+  if(row.Status === 'ใช้แล้ว' || row.Status === 'รับแล้ว') return false;
+  var ref = row.Status === 'สั่งแล้ว' ? row.OrderedDate : row.CreatedAt;
+  var d = daysDiff(ref ? String(ref).substring(0,10) : null);
+  return d !== null && d > 7;
+}
+
+async function loadTracks(){
+  try {
+    var res = await apiCall({ action:'getPartTracks' });
+    if(res.success){
+      ALL_TRACKS = res.data || [];
+      applyFilter();
+      updateStats();
+    } else {
+      document.getElementById('trackTbody').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--danger);">โหลดไม่สำเร็จ: '+(res.error||'unknown')+'</td></tr>';
+    }
+  } catch(e){
+    document.getElementById('trackTbody').innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--danger);">โหลดไม่สำเร็จ: '+e.message+'</td></tr>';
+  }
+}
+
+function updateStats(){
+  var wait=0, ordered=0, received=0, used=0, alert=0;
+  ALL_TRACKS.forEach(function(r){
+    if(r.Status==='รอสั่ง') wait++;
+    else if(r.Status==='สั่งแล้ว') ordered++;
+    else if(r.Status==='รับแล้ว') received++;
+    else if(r.Status==='ใช้แล้ว') used++;
+    if(isAlert(r)) alert++;
+  });
+  document.getElementById('stat-total').textContent = ALL_TRACKS.length;
+  document.getElementById('stat-wait').textContent = wait;
+  document.getElementById('stat-ordered').textContent = ordered;
+  document.getElementById('stat-received').textContent = received;
+  document.getElementById('stat-used').textContent = used;
+  document.getElementById('stat-alert').textContent = alert;
+
+  var alertBar = document.getElementById('alertBar');
+  if(alert > 0){
+    alertBar.style.display = 'flex';
+    document.getElementById('alertMsg').textContent = 'มี '+alert+' รายการที่รออะไหล่นานเกิน 7 วัน — กรุณาตรวจสอบ';
+  } else {
+    alertBar.style.display = 'none';
+  }
+}
+
+function applyFilter(){
+  var q = (document.getElementById('filterSearch').value||'').toLowerCase().trim();
+  var st = document.getElementById('filterStatus').value;
+  var alertOnly = document.getElementById('filterAlert').value === 'alert';
+
+  FILTERED_TRACKS = ALL_TRACKS.filter(function(r){
+    if(st && r.Status !== st) return false;
+    if(alertOnly && !isAlert(r)) return false;
+    if(q){
+      var hay = [r.JobID||'',r.LicensePlate||'',r.PartName||'',r.Supplier||'',r.Note||''].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  renderTable();
+  document.getElementById('rowCount').textContent = FILTERED_TRACKS.length + ' รายการ';
+}
+
+function clearFilter(){
+  document.getElementById('filterSearch').value='';
+  document.getElementById('filterStatus').value='';
+  document.getElementById('filterAlert').value='';
+  applyFilter();
+}
+
+function statusClass(s){
+  if(s==='รอสั่ง') return 's-wait';
+  if(s==='สั่งแล้ว') return 's-ordered';
+  if(s==='รับแล้ว') return 's-received';
+  if(s==='ใช้แล้ว') return 's-used';
+  return '';
+}
+function statusIcon(s){
+  if(s==='รอสั่ง') return '🟠';
+  if(s==='สั่งแล้ว') return '🔵';
+  if(s==='รับแล้ว') return '🟣';
+  if(s==='ใช้แล้ว') return '🟢';
+  return '';
+}
+function fmtDate(iso){
+  if(!iso) return '<span style="color:var(--gray-300);">—</span>';
+  var p = String(iso).substring(0,10).split('-');
+  if(p.length<3) return iso;
+  var thMonths=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return parseInt(p[2])+' '+thMonths[parseInt(p[1])-1]+' '+(parseInt(p[0])+543);
+}
+
+function renderTable(){
+  if(FILTERED_TRACKS.length === 0){
+    document.getElementById('trackTbody').innerHTML = '<tr><td colspan="12"><div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-box-open"></i></div><div class="empty-title">ไม่มีรายการ</div><div class="empty-sub">ลองเปลี่ยนเงื่อนไขการค้นหา</div></div></td></tr>';
+    return;
+  }
+  var html = '';
+  FILTERED_TRACKS.forEach(function(r, i){
+    var alert = isAlert(r);
+    var alertCls = alert ? 'row-alert' : '';
+    var alertTag = alert ? '<span style="font-size:10px;color:var(--danger);font-weight:700;display:block;margin-top:2px;">⚠️ รอนาน</span>' : '';
+    var price = Number(r.Price||0);
+    html += '<tr class="'+alertCls+'">';
+    html += '<td style="color:var(--gray-400);font-size:12px;">'+(i+1)+'</td>';
+    html += '<td><span style="font-weight:700;font-family:monospace;color:var(--primary);">'+(r.JobID||'—')+'</span>'+alertTag+'</td>';
+    html += '<td><span style="font-weight:600;">'+(r.LicensePlate||'—')+'</span></td>';
+    html += '<td style="font-weight:600;max-width:180px;word-break:break-word;">'+(r.PartName||'—')+'</td>';
+    html += '<td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:var(--gray-100);color:var(--gray-600);">'+(r.PartType||'—')+'</span></td>';
+    html += '<td><span class="status-badge '+statusClass(r.Status)+'" onclick="quickStatus(\''+r.PartTrackID+'\',\''+r.Status+'\')" title="คลิกเพื่อเปลี่ยนสถานะ">'+statusIcon(r.Status)+' '+(r.Status||'—')+'</span></td>';
+    html += '<td style="font-size:12px;">'+fmtDate(r.OrderedDate)+'</td>';
+    html += '<td style="font-size:12px;">'+fmtDate(r.ReceivedDate)+'</td>';
+    html += '<td style="font-size:12px;color:var(--gray-600);">'+(r.Supplier||'<span style="color:var(--gray-300);">—</span>')+'</td>';
+    html += '<td style="font-weight:600;color:'+(price>0?'var(--success)':'var(--gray-300)')+';">'+(price>0?'฿'+price.toLocaleString():'—')+'</td>';
+    html += '<td style="font-size:12px;color:var(--gray-500);max-width:160px;word-break:break-word;">'+(r.Note||'<span style="color:var(--gray-300);">—</span>')+'</td>';
+    html += '<td><div style="display:flex;gap:4px;">';
+    html += '<button class="btn btn-primary btn-sm" onclick="openEditModal(\''+r.PartTrackID+'\')"><i class="fa-solid fa-pen"></i></button>';
+    html += '<button class="btn btn-danger btn-sm" onclick="confirmDelete(\''+r.PartTrackID+'\',\''+escStr(r.PartName)+'\')"><i class="fa-solid fa-trash"></i></button>';
+    html += '</div></td>';
+    html += '</tr>';
+  });
+  document.getElementById('trackTbody').innerHTML = html;
+}
+
+function escStr(s){ return String(s||'').replace(/'/g,"\\'"); }
+
+// Quick status cycle on click
+var STATUS_CYCLE = ['รอสั่ง','สั่งแล้ว','รับแล้ว','ใช้แล้ว'];
+async function quickStatus(pid, curStatus){
+  var idx = STATUS_CYCLE.indexOf(curStatus);
+  var next = STATUS_CYCLE[(idx+1) % STATUS_CYCLE.length];
+  if(!confirm('เปลี่ยนสถานะเป็น "'+next+'" ?')) return;
+  var payload = { action:'updatePartTrack', PartTrackID:pid, Status:next };
+  // ถ้าเปลี่ยนเป็น สั่งแล้ว → set OrderedDate เป็นวันนี้ถ้ายังว่าง
+  if(next==='สั่งแล้ว'){
+    var row = ALL_TRACKS.find(function(r){return r.PartTrackID===pid;});
+    if(row && !row.OrderedDate) payload.OrderedDate = TODAY_ISO;
+  }
+  // ถ้าเปลี่ยนเป็น รับแล้ว → set ReceivedDate เป็นวันนี้ถ้ายังว่าง
+  if(next==='รับแล้ว'){
+    var row2 = ALL_TRACKS.find(function(r){return r.PartTrackID===pid;});
+    if(row2 && !row2.ReceivedDate) payload.ReceivedDate = TODAY_ISO;
+  }
+  try {
+    var res = await apiCall(payload);
+    if(res.success){
+      showToast('เปลี่ยนสถานะเป็น "'+next+'" แล้ว','success');
+      await loadTracks();
+    } else {
+      showToast('ไม่สำเร็จ: '+(res.error||'unknown'),'error');
+    }
+  } catch(e){ showToast('ไม่สำเร็จ: '+e.message,'error'); }
+}
+
+// Delete
+async function confirmDelete(pid, partName){
+  if(!confirm('ลบ "'+partName+'" ออกจากระบบ?')) return;
+  try {
+    var res = await apiCall({ action:'deletePartTrack', PartTrackID:pid });
+    if(res.success){ showToast('ลบแล้ว','success'); await loadTracks(); }
+    else showToast('ลบไม่สำเร็จ: '+(res.error||'unknown'),'error');
+  } catch(e){ showToast('ลบไม่สำเร็จ: '+e.message,'error'); }
+}
+
+// ── Edit Modal ────────────────────────────────────────────────
+var _editPid = '';
+function openEditModal(pid){
+  var row = ALL_TRACKS.find(function(r){return r.PartTrackID===pid;});
+  if(!row) return;
+  _editPid = pid;
+  document.getElementById('modalPartInfo').innerHTML =
+    '<strong>'+row.PartName+'</strong><br>'
+    +'<span style="font-size:11px;">Job '+row.JobID+' | ทะเบียน '+row.LicensePlate+'</span>';
+  document.getElementById('editStatus').value = row.Status || 'รอสั่ง';
+  document.getElementById('editOrderedDate').value = row.OrderedDate ? String(row.OrderedDate).substring(0,10) : '';
+  document.getElementById('editReceivedDate').value = row.ReceivedDate ? String(row.ReceivedDate).substring(0,10) : '';
+  document.getElementById('editSupplier').value = row.Supplier || '';
+  document.getElementById('editPrice').value = row.Price || 0;
+  document.getElementById('editNote').value = row.Note || '';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal(){
+  document.getElementById('editModal').classList.remove('open');
+  _editPid = '';
+}
+async function saveEdit(){
+  if(!_editPid) return;
+  var payload = {
+    action: 'updatePartTrack',
+    PartTrackID: _editPid,
+    Status:       document.getElementById('editStatus').value,
+    OrderedDate:  document.getElementById('editOrderedDate').value,
+    ReceivedDate: document.getElementById('editReceivedDate').value,
+    Supplier:     document.getElementById('editSupplier').value,
+    Price:        parseFloat(document.getElementById('editPrice').value)||0,
+    Note:         document.getElementById('editNote').value,
+  };
+  try {
+    var res = await apiCall(payload);
+    if(res.success){
+      showToast('บันทึกแล้ว','success');
+      closeEditModal();
+      await loadTracks();
+    } else {
+      showToast('บันทึกไม่สำเร็จ: '+(res.error||'unknown'),'error');
+    }
+  } catch(e){ showToast('บันทึกไม่สำเร็จ: '+e.message,'error'); }
+}
+// Close modal on bg click
+document.getElementById('editModal').addEventListener('click', function(e){
+  if(e.target === this) closeEditModal();
+});
+
+function refreshData(){
+  loadTracks();
+  showToast('รีเฟรชข้อมูลแล้ว','');
+}
+
+// ============================================================
+// IMPORT TAB
+// ============================================================
+var ALL_JOBS = [];
+var FILTERED_JOBS = [];
+var SELECTED_JOB = null;
+var JOB_DETAILS = []; // repair details ของ job ที่เลือก
+
+async function loadAllJobs(){
+  document.getElementById('importJobList').innerHTML = '<div style="text-align:center;padding:30px;color:var(--gray-400);">กำลังโหลด...</div>';
+  try {
+    var res = await apiCall({ action:'getJobs' });
+    if(res.success){
+      ALL_JOBS = res.data || [];
+      FILTERED_JOBS = ALL_JOBS.slice();
+      renderJobList(FILTERED_JOBS);
+    } else {
+      document.getElementById('importJobList').innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">โหลดไม่สำเร็จ</div>';
+    }
+  } catch(e){
+    document.getElementById('importJobList').innerHTML = '<div style="text-align:center;padding:30px;color:var(--danger);">โหลดไม่สำเร็จ: '+e.message+'</div>';
+  }
+}
+
+function searchJobs(){
+  var q = (document.getElementById('importSearch').value||'').toLowerCase().trim();
+  if(!q){ renderJobList([]); return; }
+  FILTERED_JOBS = ALL_JOBS.filter(function(j){
+    return (j.JobID||'').toLowerCase().includes(q)
+        || (j.LicensePlate||'').toLowerCase().includes(q)
+        || (j.FullName||'').toLowerCase().includes(q);
+  });
+  renderJobList(FILTERED_JOBS);
+}
+
+function renderJobList(jobs){
+  if(!jobs || jobs.length===0){
+    document.getElementById('importJobList').innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div><div class="empty-title">ไม่พบ Job</div><div class="empty-sub">ลองค้นหาด้วย Job ID หรือทะเบียนรถ</div></div>';
+    document.getElementById('importDetailWrap').style.display='none';
+    return;
+  }
+  var html = '';
+  jobs.slice(0,30).forEach(function(j){
+    var hasParts = j.SparePartName || false;
+    html += '<div class="import-job-card" onclick="selectJob(\''+j.JobID+'\')">';
+    html += '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">'+(j.JobID||'?').charAt(0)+'</div>';
+    html += '<div class="import-job-info">';
+    html += '<div class="import-job-id">Job #'+j.JobID+'</div>';
+    html += '<div class="import-job-plate">ทะเบียน: '+(j.LicensePlate||'—')+' | '+(j.FullName||'—')+'</div>';
+    html += '<div class="import-job-parts">สถานะ: '+(j.JobStatus||'—')+'</div>';
+    html += '</div>';
+    html += '<i class="fa-solid fa-chevron-right" style="color:var(--gray-300);"></i>';
+    html += '</div>';
+  });
+  document.getElementById('importJobList').innerHTML = html;
+}
+
+async function selectJob(jobId){
+  SELECTED_JOB = jobId;
+  // mark selected
+  document.querySelectorAll('.import-job-card').forEach(function(el){ el.classList.remove('selected'); });
+  // load repair details
+  document.getElementById('importDetailWrap').style.display='block';
+  document.getElementById('importDetailTitle').textContent = 'กำลังโหลดอะไหล่ใน Job #'+jobId+'...';
+  document.getElementById('importDetailList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">กำลังโหลด...</div>';
+  try {
+    var res = await apiCall({ action:'getRepairDetails', jobId:jobId });
+    if(res.success){
+      JOB_DETAILS = (res.data||[]).filter(function(d){ return d.SparePartName && String(d.SparePartName).trim(); });
+      renderDetailList(jobId);
+    } else {
+      document.getElementById('importDetailList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);">โหลดไม่สำเร็จ</div>';
+    }
+  } catch(e){
+    document.getElementById('importDetailList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--danger);">โหลดไม่สำเร็จ: '+e.message+'</div>';
+  }
+}
+
+function renderDetailList(jobId){
+  document.getElementById('importDetailTitle').textContent = 'อะไหล่ใน Job #'+jobId+' ('+JOB_DETAILS.length+' รายการ)';
+  if(JOB_DETAILS.length===0){
+    document.getElementById('importDetailList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">ไม่พบข้อมูลอะไหล่ใน Job นี้</div>';
+    document.getElementById('importSelCount').textContent='';
+    return;
+  }
+  var html='';
+  JOB_DETAILS.forEach(function(d,i){
+    var parts = String(d.SparePartName||'').trim();
+    var partType = d.GenuineParts?'แท้':d.StoredParts?'คลัง':d.OrderedParts?'สั่ง':'ทั่วไป';
+    html+='<div class="part-detail-row">';
+    html+='<input type="checkbox" class="part-check" id="pck_'+i+'" value="'+i+'" onchange="countSelected()" checked>';
+    html+='<label for="pck_'+i+'" class="part-name" style="cursor:pointer;">'+parts+'</label>';
+    html+='<span class="part-type">'+partType+'</span>';
+    html+='</div>';
+  });
+  document.getElementById('importDetailList').innerHTML=html;
+  countSelected();
+}
+
+function countSelected(){
+  var n = document.querySelectorAll('.part-check:checked').length;
+  document.getElementById('importSelCount').textContent = 'เลือก '+n+' รายการ';
+}
+function selectAllParts(){ document.querySelectorAll('.part-check').forEach(function(el){el.checked=true;}); countSelected(); }
+function deselectAllParts(){ document.querySelectorAll('.part-check').forEach(function(el){el.checked=false;}); countSelected(); }
+
+async function doImport(){
+  if(!SELECTED_JOB){ showToast('กรุณาเลือก Job ก่อน','error'); return; }
+  var checked = document.querySelectorAll('.part-check:checked');
+  if(checked.length===0){ showToast('กรุณาเลือกอะไหล่อย่างน้อย 1 รายการ','error'); return; }
+  if(!confirm('นำเข้าอะไหล่ '+checked.length+' รายการ จาก Job #'+SELECTED_JOB+'?')) return;
+
+  try {
+    var res = await apiCall({ action:'importPartFromJob', jobId:SELECTED_JOB });
+    if(res.success){
+      var msg = 'นำเข้าสำเร็จ '+res.imported+' รายการ';
+      if(res.skipped>0) msg += ' (ข้าม '+res.skipped+' รายการที่มีแล้ว)';
+      showToast(msg,'success');
+      // reload track
+      await loadTracks();
+    } else {
+      showToast('นำเข้าไม่สำเร็จ: '+(res.error||'unknown'),'error');
+    }
+  } catch(e){ showToast('นำเข้าไม่สำเร็จ: '+e.message,'error'); }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadTracks();
+</script>
+</body>
+</html>

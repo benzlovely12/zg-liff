@@ -21,6 +21,7 @@ const SHEETS = {
   OT:            'OT',
   PAYROLL:       'PAYROLL',
   PAYROLL_EOM:   'PAYROLL_EOM',
+  PART_TRACK:    'PART_TRACK',
 };
 
 // Column ที่ต้องเก็บเป็น Plain Text (format '@') เพื่อไม่ให้ Sheets แปลงเป็น Number
@@ -36,6 +37,7 @@ const TEXT_COLUMNS = {
   OT:            ['OTID'],
   PAYROLL:       ['PayrollID','UserID','PayDate','PeriodFrom','PeriodTo'],
   PAYROLL_EOM:   ['EomID','UserID','PayDate','PeriodFrom','PeriodTo','Water'],
+  PART_TRACK:    ['PartTrackID','JobID','DetailID','LicensePlate','PartName','PartType'],
 };
 
 // ============================================================
@@ -56,6 +58,12 @@ function doGet(e) {
   if (e && e.parameter && e.parameter.page === 'hr') {
     return HtmlService.createHtmlOutputFromFile('hr')
       .setTitle('HR — ระบบจัดการอู่ซ่อมรถ')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  // serve Part.html เมื่อ ?page=part
+  if (e && e.parameter && e.parameter.page === 'part') {
+    return HtmlService.createHtmlOutputFromFile('Part')
+      .setTitle('ติดตามอะไหล่ — ระบบจัดการอู่ซ่อมรถ')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
   // serve liff_leave.html เมื่อ ?page=liff_leave
@@ -149,14 +157,21 @@ function handleRequest(e) {
       // PAYROLL
       case 'getPayroll':         result = getPayroll(data.month); break;
       case 'savePayroll':        result = savePayroll(data); break;
+      case 'savePayrollBatch':   result = savePayrollBatch(data); break;
       case 'deletePayroll':      result = deletePayroll(data.PayrollID); break;
       case 'getPayrollEom':      result = getPayrollEom(data.month); break;
       case 'savePayrollEom':     result = savePayrollEom(data); break;
+      case 'savePayrollEomBatch':result = savePayrollEomBatch(data); break;
       case 'deletePayrollEom':   result = deletePayrollEom(data.EomID); break;
       case 'getPayslip':         result = getPayslip(data); break;
       // ARCHIVE
       case 'getArchiveJobs':     result = getArchiveJobs(data.yearPrefix); break;
       case 'listArchiveSheets':  result = listArchiveSheets(); break;
+      // PART TRACK
+      case 'importPartFromJob':  result = importPartFromJob(data); break;
+      case 'getPartTracks':      result = getPartTracks(data); break;
+      case 'updatePartTrack':    result = updatePartTrack(data); break;
+      case 'deletePartTrack':    result = deletePartTrack(data.PartTrackID); break;
       default:
         result = { success: false, error: 'Unknown action: ' + data.action };
     }
@@ -245,6 +260,7 @@ function initSheet(sheet, name) {
     DD_SETTINGS:  ['Key','Value','UpdatedAt'],
     USERS:        ['UserID','Name','Role','Status','LineUserID','CreatedAt','PayType','DailyRate','FixWeek','SpecialRate','DeductPerDay','SSO','EmpCode','MonthBonus','SortOrder'],
     PART_ITEMS:   ['PartName','Zone','CreatedAt'],
+    PART_TRACK:   ['PartTrackID','JobID','DetailID','LicensePlate','PartName','PartType','Status','OrderedDate','ReceivedDate','Supplier','Price','Note','UpdatedAt','CreatedAt'],
   };
 
   if (!headers[name]) return;
@@ -1586,6 +1602,171 @@ function deletePayroll(payrollId) {
 }
 
 // ============================================================
+// PAYROLL BATCH — บันทึกหลายคนใน 1 request (กันปัญหา GAS lock)
+// ============================================================
+
+// รับ: { week: N, rows: [ { PayrollID?, UserID, PayDate, PeriodFrom, PeriodTo,
+//   Days, OTHours, BonusExtra, Water, SSO, DeductNow, Penalty, DayRate, SpRate } ] }
+// คืน: { success, saved: [ { UserID, PayrollID } ] }
+function savePayrollBatch(data) {
+  try {
+    const sheet = getSheet(SHEETS.PAYROLL);
+    const allData = sheet.getDataRange().getValues();
+    const headers = allData[0];
+    const idIdx = headers.indexOf('PayrollID');
+    const textCols = TEXT_COLUMNS['PAYROLL'] || [];
+    const week = Number(data.week) || 0;
+
+    let rows = data.rows || [];
+    if (typeof rows === 'string') { try { rows = JSON.parse(rows); } catch(e) { rows = []; } }
+    if (!Array.isArray(rows) || rows.length === 0) return { success: false, error: 'no rows' };
+
+    const saved = [];
+
+    // แยก rows เป็น updates (มี PayrollID) กับ inserts (ไม่มี)
+    const toUpdate = [];
+    const toInsert = [];
+    rows.forEach(function(r) {
+      // ถ้า row มี _week ให้ใช้ค่านั้น (กรณี saveMonthlyWeek ส่ง week 0 กับ week 1 รวมกัน)
+      const rowWeek = (r._week !== undefined && r._week !== null) ? Number(r._week) : week;
+      // derive Month: ถ้า PayDate ว่าง (week 0) ให้ใช้ _refPayDate แทน
+      const refDate = r.PayDate || r._refPayDate || '';
+      const derivedMonth = refDate ? String(refDate).substring(0, 7) : '';
+      const buildRowArr = function(pid) {
+        return headers.map(function(h) {
+          if      (h === 'PayrollID')  return pid;
+          else if (h === 'UserID')     return String(r.UserID || '');
+          else if (h === 'Month')      return derivedMonth;
+          else if (h === 'Week')       return rowWeek;
+          else if (h === 'PayDate')    return String(r.PayDate || '');
+          else if (h === 'PeriodFrom') return String(r.PeriodFrom || '');
+          else if (h === 'PeriodTo')   return String(r.PeriodTo || '');
+          else if (h === 'Days')       return Number(r.Days) || 0;
+          else if (h === 'OTHours')    return Number(r.OTHours) || 0;
+          else if (h === 'BonusExtra') return Number(r.BonusExtra) || 0;
+          else if (h === 'Water')      return Number(r.Water) || 0;
+          else if (h === 'SSO')        return Number(r.SSO) || 0;
+          else if (h === 'DeductNow')  return Number(r.DeductNow) || 0;
+          else if (h === 'Penalty')    return Number(r.Penalty) || 0;
+          else if (h === 'DayRate')    return Number(r.DayRate) || 0;
+          else if (h === 'SpRate')     return Number(r.SpRate) || 0;
+          else return '';
+        });
+      };
+      if (r.PayrollID) {
+        toUpdate.push({ pid: r.PayrollID, uid: r.UserID, buildRowArr: buildRowArr });
+      } else {
+        toInsert.push({ uid: r.UserID, buildRowArr: buildRowArr });
+      }
+    });
+
+    // UPDATE — วน allData หา row ที่ตรง PayrollID แล้ว setValues ทีละ row
+    // (update ไม่สามารถ batch เป็น setValues เดียวได้เพราะ row ไม่ติดกัน)
+    toUpdate.forEach(function(u) {
+      for (let i = 1; i < allData.length; i++) {
+        if (String(allData[i][idIdx]) === String(u.pid)) {
+          sheet.getRange(i + 1, 1, 1, headers.length).setValues([u.buildRowArr(u.pid)]);
+          saved.push({ UserID: u.uid, PayrollID: u.pid });
+          break;
+        }
+      }
+    });
+
+    // INSERT — สร้าง array of arrays แล้ว setValues ครั้งเดียว
+    if (toInsert.length > 0) {
+      const startRow = sheet.getLastRow() + 1;
+      // set text format ก่อน insert
+      textCols.forEach(function(col) {
+        const ci = headers.indexOf(col);
+        if (ci >= 0) sheet.getRange(startRow, ci + 1, toInsert.length, 1).setNumberFormat('@');
+      });
+      const insertRows = toInsert.map(function(ins) {
+        const pid = generateId('PAY');
+        saved.push({ UserID: ins.uid, PayrollID: pid });
+        return ins.buildRowArr(pid);
+      });
+      sheet.getRange(startRow, 1, insertRows.length, headers.length).setValues(insertRows);
+    }
+
+    return { success: true, saved: saved };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// รับ: { rows: [ { EomID?, UserID, Month, PayDate, PeriodFrom, PeriodTo,
+//   Bonus, Water, DeductLump, SSO } ] }
+function savePayrollEomBatch(data) {
+  try {
+    const sheet = getSheet(SHEETS.PAYROLL_EOM);
+    const allData = sheet.getDataRange().getValues();
+    const headers = allData[0];
+    const idIdx = headers.indexOf('EomID');
+    const textCols = TEXT_COLUMNS['PAYROLL_EOM'] || [];
+
+    let rows = data.rows || [];
+    if (typeof rows === 'string') { try { rows = JSON.parse(rows); } catch(e) { rows = []; } }
+    if (!Array.isArray(rows) || rows.length === 0) return { success: false, error: 'no rows' };
+
+    const saved = [];
+    const toUpdate = [];
+    const toInsert = [];
+
+    rows.forEach(function(r) {
+      const derivedMonth = r.PayDate ? String(r.PayDate).substring(0, 7) : String(r.Month || '');
+      const buildRowArr = function(eid) {
+        return headers.map(function(h) {
+          if      (h === 'EomID')      return eid;
+          else if (h === 'UserID')     return String(r.UserID || '');
+          else if (h === 'Month')      return derivedMonth;
+          else if (h === 'PayDate')    return String(r.PayDate || '');
+          else if (h === 'PeriodFrom') return String(r.PeriodFrom || '');
+          else if (h === 'PeriodTo')   return String(r.PeriodTo || '');
+          else if (h === 'Bonus')      return Number(r.Bonus) || 0;
+          else if (h === 'Water')      return Number(r.Water) || 0;
+          else if (h === 'DeductLump') return Number(r.DeductLump) || 0;
+          else if (h === 'SSO')        return Number(r.SSO) || 0;
+          else return '';
+        });
+      };
+      if (r.EomID) {
+        toUpdate.push({ eid: r.EomID, uid: r.UserID, buildRowArr: buildRowArr });
+      } else {
+        toInsert.push({ uid: r.UserID, buildRowArr: buildRowArr });
+      }
+    });
+
+    toUpdate.forEach(function(u) {
+      for (let i = 1; i < allData.length; i++) {
+        if (String(allData[i][idIdx]) === String(u.eid)) {
+          sheet.getRange(i + 1, 1, 1, headers.length).setValues([u.buildRowArr(u.eid)]);
+          saved.push({ UserID: u.uid, EomID: u.eid });
+          break;
+        }
+      }
+    });
+
+    if (toInsert.length > 0) {
+      const startRow = sheet.getLastRow() + 1;
+      textCols.forEach(function(col) {
+        const ci = headers.indexOf(col);
+        if (ci >= 0) sheet.getRange(startRow, ci + 1, toInsert.length, 1).setNumberFormat('@');
+      });
+      const insertRows = toInsert.map(function(ins) {
+        const eid = generateId('EOM');
+        saved.push({ UserID: ins.uid, EomID: eid });
+        return ins.buildRowArr(eid);
+      });
+      sheet.getRange(startRow, 1, insertRows.length, headers.length).setValues(insertRows);
+    }
+
+    return { success: true, saved: saved };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// ============================================================
 // PAYROLL_EOM — Month-end Settlement
 // ============================================================
 
@@ -1665,6 +1846,186 @@ function deletePayrollEom(eomId) {
 // ============================================================
 // PAYSLIP — ดึงข้อมูลสลีปเงินเดือน
 // ============================================================
+// ============================================================
+// PART TRACK — ระบบติดตามอะไหล่
+// ============================================================
+// columns: PartTrackID | JobID | DetailID | LicensePlate | PartName | PartType
+//          | Status | OrderedDate | ReceivedDate | Supplier | Price | Note
+//          | UpdatedAt | CreatedAt
+// Status values: รอสั่ง | สั่งแล้ว | รับแล้ว | ใช้แล้ว
+
+// นำเข้าอะไหล่จาก REPAIR_DETAIL ของ JobID ที่ระบุ
+// รับ: { jobId } หรือ { jobIds: [...] }
+// คืน: { success, imported: N, skipped: N }
+function importPartFromJob(data) {
+  try {
+    let jobIds = [];
+    if (data.jobIds && Array.isArray(data.jobIds)) {
+      jobIds = data.jobIds.map(String);
+    } else if (data.jobId) {
+      jobIds = [String(data.jobId)];
+    }
+    if (jobIds.length === 0) return { success: false, error: 'ต้องระบุ jobId หรือ jobIds' };
+
+    // โหลด REPAIR_DETAIL
+    const rdSheet = getSheet(SHEETS.REPAIR_DETAIL);
+    const rdRows = sheetToObjects(rdSheet, 'REPAIR_DETAIL');
+
+    // โหลด JOB เพื่อดึง LicensePlate
+    const jobSheet = getSheet(SHEETS.JOB);
+    const jobRows = sheetToObjects(jobSheet, 'JOB');
+    const jobMap = {};
+    jobRows.forEach(j => { if (j.JobID) jobMap[String(j.JobID).trim()] = j; });
+
+    // โหลด PART_TRACK เพื่อตรวจ duplicate (ตาม DetailID)
+    const ptSheet = getSheet(SHEETS.PART_TRACK);
+    const ptRows = sheetToObjects(ptSheet, 'PART_TRACK');
+    const existingDetailIds = new Set(ptRows.map(r => String(r.DetailID || '').trim()).filter(Boolean));
+
+    const ptHeaders = ptSheet.getRange(1, 1, 1, ptSheet.getLastColumn()).getValues()[0];
+    const textCols = TEXT_COLUMNS['PART_TRACK'] || [];
+    const timestamp = now();
+
+    let imported = 0, skipped = 0;
+    const rowsToInsert = [];
+
+    jobIds.forEach(jobId => {
+      const job = jobMap[jobId] || {};
+      const plate = String(job.LicensePlate || '');
+      const details = rdRows.filter(r => String(r.JobID || '').trim() === jobId);
+
+      details.forEach(detail => {
+        const detailId = String(detail.DetailID || '').trim();
+        // ตรวจ duplicate
+        if (detailId && existingDetailIds.has(detailId)) { skipped++; return; }
+
+        // แยก SparePartName ออกเป็น parts (อาจมีหลายรายการคั่นด้วย comma หรือ newline)
+        const rawParts = String(detail.SparePartName || '').trim();
+        if (!rawParts) { skipped++; return; }
+
+        // รองรับทั้ง comma, newline, semicolon
+        const partNames = rawParts.split(/[,;\n\r]+/).map(s => s.trim()).filter(Boolean);
+
+        partNames.forEach((partName, idx) => {
+          const trackId = generateId('PT');
+          const partType = rawParts.includes(partName) && (
+            String(detail.GenuineParts||'').toLowerCase().includes(partName.toLowerCase()) ? 'แท้' :
+            String(detail.StoredParts||'').toLowerCase().includes(partName.toLowerCase()) ? 'ในคลัง' :
+            String(detail.OrderedParts||'').toLowerCase().includes(partName.toLowerCase()) ? 'สั่ง' : 'ทั่วไป'
+          ) || 'ทั่วไป';
+
+          const rowArr = ptHeaders.map(h => {
+            if      (h === 'PartTrackID')   return trackId;
+            else if (h === 'JobID')         return jobId;
+            else if (h === 'DetailID')      return idx === 0 ? detailId : ''; // ผูก DetailID แค่ตัวแรก
+            else if (h === 'LicensePlate')  return plate;
+            else if (h === 'PartName')      return partName;
+            else if (h === 'PartType')      return partType;
+            else if (h === 'Status')        return 'รอสั่ง';
+            else if (h === 'OrderedDate')   return '';
+            else if (h === 'ReceivedDate')  return '';
+            else if (h === 'Supplier')      return '';
+            else if (h === 'Price')         return 0;
+            else if (h === 'Note')          return String(detail.RepairDescription || '');
+            else if (h === 'UpdatedAt')     return timestamp;
+            else if (h === 'CreatedAt')     return timestamp;
+            else return '';
+          });
+          rowsToInsert.push(rowArr);
+          if (idx === 0) existingDetailIds.add(detailId); // mark ว่า import แล้ว
+          imported++;
+        });
+      });
+    });
+
+    if (rowsToInsert.length > 0) {
+      const startRow = ptSheet.getLastRow() + 1;
+      // set text format
+      textCols.forEach(col => {
+        const ci = ptHeaders.indexOf(col);
+        if (ci >= 0) ptSheet.getRange(startRow, ci + 1, rowsToInsert.length, 1).setNumberFormat('@');
+      });
+      ptSheet.getRange(startRow, 1, rowsToInsert.length, ptHeaders.length).setValues(rowsToInsert);
+    }
+
+    return { success: true, imported, skipped };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// ดึงรายการ PART_TRACK ทั้งหมด หรือ filter ตาม jobId / status
+function getPartTracks(data) {
+  try {
+    const sheet = getSheet(SHEETS.PART_TRACK);
+    let rows = sheetToObjects(sheet, 'PART_TRACK');
+    if (data && data.jobId) {
+      rows = rows.filter(r => String(r.JobID || '').trim() === String(data.jobId));
+    }
+    if (data && data.status) {
+      rows = rows.filter(r => String(r.Status || '') === String(data.status));
+    }
+    if (data && data.licensePlate) {
+      rows = rows.filter(r => String(r.LicensePlate || '').trim() === String(data.licensePlate).trim());
+    }
+    // sort ล่าสุดก่อน
+    rows.sort((a, b) => String(b.CreatedAt || '').localeCompare(String(a.CreatedAt || '')));
+    return { success: true, data: rows };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// อัพเดทข้อมูล PART_TRACK (Status, OrderedDate, ReceivedDate, Supplier, Price, Note)
+// รับ: { PartTrackID, Status?, OrderedDate?, ReceivedDate?, Supplier?, Price?, Note? }
+function updatePartTrack(data) {
+  try {
+    const sheet = getSheet(SHEETS.PART_TRACK);
+    const allData = sheet.getDataRange().getValues();
+    const headers = allData[0];
+    const idIdx = headers.indexOf('PartTrackID');
+    const pid = String(data.PartTrackID || '').trim();
+    if (!pid) return { success: false, error: 'PartTrackID required' };
+
+    const updatable = ['Status','OrderedDate','ReceivedDate','Supplier','Price','Note','UpdatedAt'];
+
+    for (let i = 1; i < allData.length; i++) {
+      if (String(allData[i][idIdx]).trim() === pid) {
+        headers.forEach((h, col) => {
+          if (h === 'UpdatedAt') {
+            sheet.getRange(i + 1, col + 1).setValue(now());
+          } else if (updatable.includes(h) && data[h] !== undefined) {
+            sheet.getRange(i + 1, col + 1).setValue(data[h]);
+          }
+        });
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'PartTrackID not found' };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// ลบ PART_TRACK row
+function deletePartTrack(partTrackId) {
+  try {
+    const sheet = getSheet(SHEETS.PART_TRACK);
+    const allData = sheet.getDataRange().getValues();
+    const idIdx = allData[0].indexOf('PartTrackID');
+    const pid = String(partTrackId || '').trim();
+    for (let i = allData.length - 1; i >= 1; i--) {
+      if (String(allData[i][idIdx]).trim() === pid) {
+        sheet.deleteRow(i + 1);
+        return { success: true };
+      }
+    }
+    return { success: false, error: 'PartTrackID not found' };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
 function getPayslip(data) {
   try {
     const userId = String(data.UserID || '');
