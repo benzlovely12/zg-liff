@@ -2174,7 +2174,7 @@
                           <th style="width:32px;"></th>
                           <th style="width:32px;text-align:center;">#</th>
                           <th>ชื่ออะไหล่</th>
-                          <th style="width:110px;text-align:center;">จัดการ</th>
+                          <th style="width:120px;text-align:center;">จัดการ</th>
                         </tr></thead>
                         <tbody id="pi_zone_list"></tbody>
                       </table>
@@ -6517,7 +6517,8 @@ function piRenderByZone() {
       + '<td style="width:32px;text-align:center;color:var(--gray-400);"><i class="fa-solid fa-grip-vertical" style="font-size:13px;"></i></td>'
       + '<td style="width:32px;text-align:center;color:var(--gray-500);font-size:12px;">' + (idx+1) + '</td>'
       + '<td style="font-size:13px;"><strong>' + (p.PartName || '—') + '</strong></td>'
-      + '<td style="width:90px;white-space:nowrap;text-align:center;">'
+      + '<td style="width:120px;white-space:nowrap;text-align:center;">'
+      + '<button style="padding:3px 7px;border:none;border-radius:5px;background:#d97706;color:#fff;cursor:pointer;font-size:12px;margin-right:3px;" title="ส่งอะไหล่ชิ้นนี้เข้าระบบติดตาม" onclick="importSinglePart(\'' + eName + '\',\'' + eZone + '\')"><i class="fa-solid fa-arrow-right-to-bracket"></i></button>'
       + '<button class="btn btn-outline btn-sm" style="padding:3px 7px;margin-right:3px;" onclick="piEditItem(\'' + eName + '\',\'' + eZone + '\')"><i class="fa-solid fa-pen"></i></button>'
       + '<button class="btn btn-danger btn-sm" style="padding:3px 7px;" onclick="piDelItem(\'' + eName + '\',\'' + eZone + '\')"><i class="fa-solid fa-trash"></i></button>'
       + '</td></tr>';
