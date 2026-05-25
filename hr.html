@@ -867,7 +867,7 @@ function renderPIBody(){
       var mgh=mghCls[w], msh=mshCls[w];
 
       var mWheadBar='<tr>';
-      mWheadBar+='<th colspan="8" class="'+mgh+' pdate-th" style="padding:6px 10px;background:#1e293b;">';
+      mWheadBar+='<th colspan="10" class="'+mgh+' pdate-th" style="padding:6px 10px;background:#1e293b;">';
       mWheadBar+='<div class="pdate-inputs" style="align-items:center;gap:8px;">';
       mWheadBar+='<span style="color:#fff;font-weight:700;font-size:13px;margin-right:8px;">📋 สัปดาห์ที่ '+w+'</span>';
       mWheadBar+='<span class="pdate-label" style="color:#38bdf8;font-size:10px;">จ่าย:</span>';
@@ -882,6 +882,8 @@ function renderPIBody(){
       var mWcolRow='<tr>';
       mWcolRow+='<th class="pcol-name-h">ชื่อ-นามสกุล</th>';
       mWcolRow+='<th class="'+msh+'">วันทำงาน</th>';
+      mWcolRow+='<th class="'+msh+'" style="color:#1d4ed8;">ค่าแรง/วัน</th>';
+      mWcolRow+='<th class="'+msh+'" style="color:#7c3aed;">พิเศษ/วัน</th>';
       mWcolRow+='<th class="'+msh+'">OT ชม.</th>';
       mWcolRow+='<th class="'+msh+'">รายได้พิเศษ</th>';
       mWcolRow+='<th class="'+msh+'" style="color:#0369a1;">น้ำ/ไฟ</th>';
@@ -893,9 +895,12 @@ function renderPIBody(){
       var mWempRows='';
       mEmp.forEach(function(emp){
         var st=pWState[w][emp.id], rm=pCalcMonthlyWeek(emp,st);
+        var mr=pRowRate[emp.id]||{dayRate:emp.dayRate,spRate:emp.specialRate};
         mWempRows+='<tr>';
         mWempRows+='<td class="pcol-name"><div class="pname">'+emp.name+'</div></td>';
         mWempRows+='<td>'+piI('pi-days',emp.id,w,'days',st.days)+'</td>';
+        mWempRows+='<td style="color:#1d4ed8;">'+piRate(emp.id,'dayRate',mr.dayRate)+'</td>';
+        mWempRows+='<td style="color:#7c3aed;">'+piSp(emp.id,mr.spRate)+'</td>';
         mWempRows+='<td>'+piI('pi-ot',emp.id,w,'otHours',st.otHours)+'</td>';
         mWempRows+='<td>'+piI('pi-bonus',emp.id,w,'bonusExtra',st.bonusExtra)+'</td>';
         mWempRows+='<td>'+piI('pi-water',emp.id,w,'water',st.water)+'</td>';
