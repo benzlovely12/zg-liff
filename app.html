@@ -2164,14 +2164,9 @@
                     <div style="padding:10px 14px;font-size:12px;font-weight:700;color:var(--gray-700);border-bottom:1px solid var(--gray-200);background:var(--gray-50);display:flex;align-items:center;gap:6px;flex-shrink:0;">
                       <i class="fa-solid fa-box-open" style="color:#b45309;font-size:11px;"></i>
                       อะไหล่ของ <span id="ri_parts_title" style="color:#b45309;margin-left:4px;">—</span>
-                      <div style="margin-left:auto;display:flex;gap:5px;">
-                        <button class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;" onclick="piOpenAddModal()">
-                          <i class="fa-solid fa-plus"></i> เพิ่ม
-                        </button>
-                        <button class="btn btn-sm" id="btnImportPart" style="padding:3px 10px;font-size:11px;background:#d97706;color:#fff;border:none;border-radius:5px;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;font-weight:600;" onclick="importCurrentJobParts()" title="นำเข้าอะไหล่ทั้งหมดของ Job นี้เข้าระบบติดตาม">
-                          <i class="fa-solid fa-arrow-right-to-bracket"></i> ติดตามอะไหล่
-                        </button>
-                      </div>
+                      <button class="btn btn-primary btn-sm" style="margin-left:auto;padding:3px 10px;font-size:11px;" onclick="piOpenAddModal()">
+                        <i class="fa-solid fa-plus"></i> เพิ่ม
+                      </button>
                     </div>
                     <div style="flex:1;overflow-y:auto;">
                       <table class="data-table">
@@ -2776,6 +2771,42 @@ function openHR() {
 
 function openPart() {
   location.href = 'https://benzlovely12.github.io/zg-liff/Part.html';
+}
+
+// นำเข้าอะไหล่ทีละชิ้นเข้าระบบติดตาม (PART_TRACK)
+async function importSinglePart(partName, zone) {
+  var jobId = currentJobId || '';
+  if (!jobId) {
+    var el = document.getElementById('f_jobId');
+    if (el) jobId = (el.value || '').trim();
+  }
+  if (!jobId) { showToast('ไม่พบ Job ID — กรุณาเปิด Job ก่อน', 'error'); return; }
+
+  // หา LicensePlate จาก form
+  var plate = '';
+  var plateEl = document.getElementById('f_licensePlate') || document.getElementById('f_plate');
+  if (plateEl) plate = (plateEl.value || '').trim();
+
+  try {
+    var res = await apiCall({
+      action: 'importSinglePart',
+      jobId: jobId,
+      partName: partName,
+      partType: zone || 'ทั่วไป',
+      licensePlate: plate
+    });
+    if (res.success) {
+      if (res.skipped) {
+        showToast('"' + partName + '" มีในระบบติดตามอยู่แล้ว', 'warning');
+      } else {
+        showToast('นำ "' + partName + '" เข้าระบบติดตามแล้ว', 'success');
+      }
+    } else {
+      showToast('นำเข้าไม่สำเร็จ: ' + (res.error || 'unknown'), 'error');
+    }
+  } catch(e) {
+    showToast('นำเข้าไม่สำเร็จ: ' + e.message, 'error');
+  }
 }
 
 // นำเข้าอะไหล่ของ Job ปัจจุบันเข้าระบบติดตาม (PART_TRACK)
@@ -6660,8 +6691,8 @@ function piRenderList() {
       + '<td style="width:36px;text-align:center;color:var(--gray-500);font-size:12px;">' + (idx+1) + '</td>'
       + '<td><strong>' + lbl + '</strong></td>'
       + '<td>' + zoneLabel + '</td>'
-      + '<td style="width:90px;white-space:nowrap;text-align:center;">'
-
+      + '<td style="width:110px;white-space:nowrap;text-align:center;">'
+      + '<button style="padding:4px 9px;border:none;border-radius:5px;background:#d97706;color:#fff;cursor:pointer;font-size:12px;margin-right:4px;" title="ส่งอะไหล่ชิ้นนี้เข้าระบบติดตาม" onclick="importSinglePart(\'' + eName + '\',\'' + eZone + '\')"><i class="fa-solid fa-arrow-right-to-bracket"></i></button>'
       + '<button class="btn btn-danger btn-sm" style="padding:4px 9px;" title="ลบ" onclick="piDelItem(\'' + eName + '\',\'' + eZone + '\')"><i class="fa-solid fa-trash"></i></button>'
       + '</td></tr>';
   }).join('');

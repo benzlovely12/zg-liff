@@ -169,6 +169,7 @@ function handleRequest(e) {
       case 'listArchiveSheets':  result = listArchiveSheets(); break;
       // PART TRACK
       case 'importPartFromJob':  result = importPartFromJob(data); break;
+      case 'importSinglePart':   result = importSinglePart(data); break;
       case 'getPartTracks':      result = getPartTracks(data); break;
       case 'updatePartTrack':    result = updatePartTrack(data); break;
       case 'deletePartTrack':    result = deletePartTrack(data.PartTrackID); break;
@@ -1949,6 +1950,65 @@ function importPartFromJob(data) {
     }
 
     return { success: true, imported, skipped };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// นำเข้าอะไหล่ทีละชิ้นจากหน้า Job โดยตรง
+// รับ: { jobId, partName, partType?, licensePlate? }
+function importSinglePart(data) {
+  try {
+    const jobId = String(data.jobId || '').trim();
+    const partName = String(data.partName || '').trim();
+    if (!jobId || !partName) return { success: false, error: 'jobId และ partName จำเป็น' };
+
+    const sheet = getSheet(SHEETS.PART_TRACK);
+    const ptRows = sheetToObjects(sheet, 'PART_TRACK');
+
+    // ตรวจ duplicate ตาม jobId + partName
+    const dup = ptRows.find(r =>
+      String(r.JobID || '').trim() === jobId &&
+      String(r.PartName || '').trim() === partName
+    );
+    if (dup) return { success: true, skipped: true };
+
+    // หา LicensePlate จาก JOB ถ้าไม่ได้ส่งมา
+    let plate = String(data.licensePlate || '').trim();
+    if (!plate) {
+      const jobSheet = getSheet(SHEETS.JOB);
+      const jobs = sheetToObjects(jobSheet, 'JOB');
+      const job = jobs.find(j => String(j.JobID || '').trim() === jobId);
+      if (job) plate = String(job.LicensePlate || '');
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const textCols = TEXT_COLUMNS['PART_TRACK'] || [];
+    const timestamp = now();
+    const trackId = generateId('PT');
+
+    const rowArr = headers.map(h => {
+      if      (h === 'PartTrackID')  return trackId;
+      else if (h === 'JobID')        return jobId;
+      else if (h === 'DetailID')     return '';
+      else if (h === 'LicensePlate') return plate;
+      else if (h === 'PartName')     return partName;
+      else if (h === 'PartType')     return String(data.partType || 'ทั่วไป');
+      else if (h === 'Status')       return 'รอสั่ง';
+      else if (h === 'Price')        return 0;
+      else if (h === 'UpdatedAt')    return timestamp;
+      else if (h === 'CreatedAt')    return timestamp;
+      else return '';
+    });
+
+    const startRow = sheet.getLastRow() + 1;
+    textCols.forEach(col => {
+      const ci = headers.indexOf(col);
+      if (ci >= 0) sheet.getRange(startRow, ci + 1).setNumberFormat('@');
+    });
+    sheet.getRange(startRow, 1, 1, headers.length).setValues([rowArr]);
+
+    return { success: true, skipped: false, PartTrackID: trackId };
   } catch(e) {
     return { success: false, error: e.toString() };
   }
